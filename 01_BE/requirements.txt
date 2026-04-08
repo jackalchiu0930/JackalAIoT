@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-multipart
+pydantic
+Pillow     # 新增：圖片處理(PIL)依赖
+opencv-python
+pyzbar
+Pillow
+numpy
+#pywebpush  # 移除：web推送

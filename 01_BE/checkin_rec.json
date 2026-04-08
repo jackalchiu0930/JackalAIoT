@@ -1,0 +1,30 @@
+{
+  "course_name": "AIoT 智慧物聯網培訓",
+  "checkin_records": [
+    {
+      "employee_id": "82192660",
+      "timestamp": "2026/03/25 19:17:50",
+      "course": "AIoT 智慧物聯網培訓"
+    },
+    {
+      "employee_id": "82192660",
+      "timestamp": "2026/04/08 15:09:03",
+      "course": ""
+    },
+    {
+      "employee_id": "82192660",
+      "timestamp": "2026/04/08 15:11:01",
+      "course": ""
+    },
+    {
+      "employee_id": "82192660",
+      "timestamp": "2026/04/08 15:32:28",
+      "course": ""
+    },
+    {
+      "employee_id": "82192660",
+      "timestamp": "2026/04/08 16:15:01",
+      "course": ""
+    }
+  ]
+}
