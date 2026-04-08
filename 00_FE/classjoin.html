@@ -385,15 +385,16 @@
         }
 
         // ==========================================
-        // 核心修改區：動態識別 ngrok 網域，避免指向未更新的 Render
+        // 核心修正區：自動識別網域，解決 Render 佈署連線問題
         // ==========================================
         const hostname = window.location.hostname;
-        let API_URL = "https://jackalchiu.onrender.com";
         
+        // 預設為當前網域，這會自動適應 Render 的 URL 或 ngrok 網址
+        let API_URL = window.location.origin; 
+        
+        // 僅在特定本地測試環境下手動指定 Port
         if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '172.20.10.3') {
             API_URL = "http://172.20.10.3:8000";
-        } else if (hostname.includes('ngrok')) {
-            API_URL = window.location.origin; // 使用動態 ngrok 網址
         }
 
         document.getElementById('employeeId').addEventListener('input', function(e) {
@@ -422,10 +423,9 @@
                 // 1. 先驗證是否為註冊學員
                 const checkRes = await fetch(`${API_URL}/check-employee/${employeeId}`);
                 
-                // 【修改點】攔截 404 等伺服器錯誤，避免一律被當作「非註冊學員」
                 if (!checkRes.ok) {
                     statusMsg.className = 'status-msg status-error';
-                    statusMsg.innerHTML = `<i class="fas fa-exclamation-triangle"></i> 伺服器異常 (HTTP ${checkRes.status})。可能是遠端 API 尚未更新，請確認測試環境。`;
+                    statusMsg.innerHTML = `<i class="fas fa-exclamation-triangle"></i> 伺服器異常 (HTTP ${checkRes.status})。請確認後端服務已啟動。`;
                     return;
                 }
 
@@ -433,7 +433,6 @@
                 
                 if (checkData.status !== 'success') {
                     statusMsg.className = 'status-msg status-error';
-                    // 精準顯示後端回傳的錯誤，或提供預設文字
                     statusMsg.innerHTML = `<i class="fas fa-times-circle"></i> ${checkData.message || '非註冊學員,請前往申請後再重試'}`;
                     return;
                 }
