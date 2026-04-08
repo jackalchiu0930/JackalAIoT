@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>前後端驗證 - AIoT</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, sans-serif;
+            background-color: #1a1a1a;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: url('./Bg_JackalAIoT.jpg') no-repeat center center;
+            background-size: cover; z-index: -1;
+        }
+
+        .top-padding-spacer { width: 100%; height: 410px; }
+
+        .container { 
+            background: rgba(255, 255, 255, 0.2); 
+            backdrop-filter: blur(15px); 
+            -webkit-backdrop-filter: blur(15px);
+            padding: 25px 20px; 
+            border-radius: 20px; 
+            width: 90%; 
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            text-align: center; 
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            margin-bottom: 100px;
+        }
+
+        h2 { font-size: 20px; margin-bottom: 20px; color: #4a90e2; }
+
+        .preview-wrapper {
+            width: 100%;
+            min-height: 200px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            border: 2px dashed rgba(74, 144, 226, 0.5);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        #preview-img { max-width: 100%; max-height: 400px; display: none; border-radius: 10px; }
+        .placeholder-text { color: rgba(255,255,255,0.4); font-size: 14px; }
+
+        .ui-element { width: 100%; padding: 14px; margin: 10px 0; border-radius: 12px; border: none; font-size: 16px; outline: none; transition: 0.1s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn { cursor: pointer; font-weight: 600; color: white; text-decoration: none; }
+        .btn-blue { background: rgba(74, 144, 226, 0.8); border: 1px solid rgba(255,255,255,0.2); }
+        .btn-green { background: rgba(76, 175, 80, 0.8); border: 1px solid rgba(255,255,255,0.2); }
+        .btn-gray { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2); }
+
+        .tap-target:active { transform: scale(0.96); }
+
+        .nav-bar {
+            position: fixed; bottom: 20px; width: 92%; max-width: 420px;
+            background: rgba(255, 255, 255, 0.3); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            height: 60px; border-radius: 30px; display: flex; justify-content: space-around; align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 -4px 20px rgba(0,0,0,0.15); z-index: 100;
+        }
+        .nav-item { color: rgba(255, 255, 255, 0.7); text-decoration: none; display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .nav-item i { font-size: 18px; }
+        .nav-item span { font-size: 10px; }
+    </style>
+</head>
+<body>
+    <div class="top-padding-spacer"></div>
+
+    <div class="container">
+        <h2>前後端驗證 (全幅浮水印)</h2>
+        
+        <div class="preview-wrapper">
+            <div id="placeholder" class="placeholder-text">請上傳圖片以測試全幅浮水印</div>
+            <img id="preview-img" src="" alt="預覽圖片">
+        </div>
+
+        <button class="ui-element btn btn-blue tap-target" onclick="document.getElementById('fileInput').click()">
+            <i class="fas fa-upload"></i> 選擇並上傳圖片
+        </button>
+        <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleFileUpload(this)">
+
+        <button class="ui-element btn btn-green tap-target" onclick="loadRemoteImage()">
+            <i class="fas fa-sync-alt"></i> 加載合成結果
+        </button>
+
+        <a href="menu02.html" class="ui-element btn btn-gray tap-target">
+            <i class="fas fa-arrow-left"></i> 返回選單
+        </a>
+    </div>
+
+    <nav class="nav-bar">
+        <a href="index.html" class="nav-item"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="alerts.html" class="nav-item"><i class="fas fa-bell"></i><span>Alerts</span></a>
+        <div class="nav-item"><i class="fas fa-user"></i><span>Profile</span></div>
+        <div class="nav-item"><i class="fas fa-cog"></i><span>Settings</span></div>
+        <a href="about.html" class="nav-item"><i class="fas fa-info-circle"></i><span>About</span></a>
+    </nav>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        async function handleFileUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            document.getElementById('placeholder').innerText = "正在合成全幅浮水印...";
+
+            try {
+                const response = await fetch(`${API_BASE}/upload-mask`, {
+                    method: 'POST',
+                    body: formData
+                });
+                if (response.ok) {
+                    alert("合成完畢！");
+                    document.getElementById('placeholder').innerText = "合成成功，請點擊加載";
+                } else {
+                    alert("合成失敗");
+                }
+            } catch (err) {
+                alert("網路連線失敗");
+            }
+        }
+
+        async function loadRemoteImage() {
+            const previewImg = document.getElementById('preview-img');
+            const placeholder = document.getElementById('placeholder');
+            const imageUrl = `${API_BASE}/get-mask-image?t=${new Date().getTime()}`;
+
+            placeholder.innerText = "讀取中...";
+            previewImg.style.display = 'none';
+
+            const tempImg = new Image();
+            tempImg.onload = () => {
+                previewImg.src = imageUrl;
+                previewImg.style.display = 'block';
+                placeholder.style.display = 'none';
+            };
+            tempImg.onerror = () => {
+                placeholder.innerText = "載入失敗";
+                placeholder.style.display = 'block';
+            };
+            tempImg.src = imageUrl;
+        }
+    </script>
+</body>
+</html>

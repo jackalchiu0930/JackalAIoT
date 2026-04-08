@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>AIoT Platform - Home</title>
+    <link rel="apple-touch-icon" href="Icon_Jackal.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="Icon_Jackal.png">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* ========== 基礎重置 ========== */
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: -apple-system, sans-serif;
+            background-color: #1a1a1a;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 背景圖片 */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: url('./Bg_JackalAIoT.jpg') no-repeat center center;
+            background-size: cover; z-index: -1;
+        }
+
+        /* ========== 關鍵占位區 ========== */
+        .top-padding-spacer {
+            width: 100%;
+            height: 410px; 
+        }
+
+        /* ========== 零延時遮罩核心樣式 ========== */
+        .tap-target {
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.05s linear;
+        }
+
+        .tap-target::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0);
+            transition: background 0.05s linear;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .tapped { transform: scale(0.94) !important; }
+        .tapped::after { background: rgba(255, 255, 255, 0.4) !important; }
+
+        /* ========== 搜尋框 ========== */
+        .search-container {
+            width: 90%;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .search-bar {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            border: none;
+            padding: 14px 15px 14px 45px;
+            border-radius: 12px;
+            font-size: 16px;
+            color: #333;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+            font-size: 18px;
+        }
+
+        /* ========== 頂部卡片 ========== */
+        .card-container {
+            width: 90%;
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 18px 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+
+        .card i { font-size: 22px; color: #4a90e2; }
+        .card-info h3 { font-size: 16px; font-weight: 600; color: #4a90e2; margin-bottom: 2px; }
+        .card-info p { font-size: 11px; opacity: 0.6; color: #333; }
+
+        .section-label {
+            width: 90%;
+            font-size: 18px;
+            font-style: italic;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 15px;
+            font-weight: 400;
+        }
+
+        /* ========== 中間按鈕網格 ========== */
+        .func-grid {
+            width: 90%;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 100px;
+        }
+
+        .func-item {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 25px 10px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+
+        .func-item i { font-size: 26px; color: #4a90e2; }
+        .func-item span { font-size: 13px; color: #555; font-weight: 500; }
+
+        /* ========== 底部導航欄 ========== */
+        .nav-bar {
+            position: fixed;
+            bottom: 20px;
+            width: 92%;
+            max-width: 420px;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            height: 60px;
+            border-radius: 30px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15), 0 10px 20px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+
+        .nav-item {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            height: 80%;
+            border-radius: 20px;
+        }
+
+        .nav-item.active { color: #007aff; }
+        .nav-item i { font-size: 18px; }
+        .nav-item span { font-size: 10px; }
+
+        /* ========== 後端檢測提示窗樣式 ========== */
+        .backend-check-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+
+        .backend-check-modal.show { display: flex; }
+
+        .modal-content {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            padding: 40px 30px;
+            width: 85%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-text { font-size: 18px; color: #ffffff; margin-bottom: 30px; line-height: 1.5; }
+
+        .modal-close-btn {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            opacity: 0.5;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close-btn.active { opacity: 1; pointer-events: all; }
+
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top: 4px solid #4a90e2;
+            border-radius: 50%;
+            width: 40px; height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .progress-bar { width: 100%; height: 4px; background: rgba(255, 255, 255, 0.2); border-radius: 2px; margin: 20px 0; overflow: hidden; }
+        .progress-fill { height: 100%; background: #4a90e2; width: 0%; border-radius: 2px; animation: progressFill 5s linear forwards; }
+        @keyframes progressFill { 0% { width: 0%; } 100% { width: 100%; } }
+        .progress-bar.hidden { display: none; }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div class="backend-check-modal" id="backendCheckModal">
+        <div class="modal-content">
+            <div class="loading-spinner" id="loadingSpinner"></div>
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="modal-text" id="modalText">服務器環境檢測與準備中請稍後...</div>
+            <button class="modal-close-btn" id="modalCloseBtn" onclick="closeModal()">準備完成,即刻啟程</button>
+        </div>
+    </div>
+
+    <div class="top-padding-spacer"></div>
+
+    <div class="search-container">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" class="search-bar" placeholder="Search Keyword (關鍵字搜索)">
+    </div>
+
+    <div class="card-container">
+        <div class="card tap-target" onclick="navigateTo('test.html')">
+            <i class="fas fa-flask"></i>
+            <div class="card-info">
+                <h3>測試區</h3>
+                <p>待上架程式</p>
+            </div>
+        </div>
+        <div class="card tap-target" onclick="navigateTo('menu02.html')">
+            <i class="fas fa-th-large"></i>
+            <div class="card-info">
+                <h3>驗證區</h3>
+                <p>課程測試</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-label">Categories</div>
+
+    <div class="func-grid">
+        <div class="func-item tap-target"><i class="fas fa-chart-line"></i><span>func01</span></div>
+        <div class="func-item tap-target"><i class="fas fa-microchip"></i><span>func02</span></div>
+        <div class="func-item tap-target"><i class="fas fa-database"></i><span>func03</span></div>
+        <div class="func-item tap-target"><i class="fas fa-shield-alt"></i><span>func04</span></div>
+        <div class="func-item tap-target"><i class="fas fa-cog"></i><span>func05</span></div>
+        <div class="func-item tap-target"><i class="fas fa-broadcast-tower"></i><span>func06</span></div>
+    </div>
+
+    <nav class="nav-bar">
+        <a href="index.html" id="homeNav" class="nav-item active tap-target"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="alerts.html" onclick="setInternalNav()" class="nav-item tap-target"><i class="fas fa-bell"></i><span>Alerts</span></a>
+        <div class="nav-item tap-target"><i class="fas fa-user"></i><span>Profile</span></div>
+        <div class="nav-item tap-target"><i class="fas fa-cog"></i><span>Settings</span></div>
+        <a href="about.html" onclick="setInternalNav()" class="nav-item tap-target"><i class="fas fa-info-circle"></i><span>About</span></a>
+    </nav>
+
+<script>
+    const LOADING_DURATION = 5000;
+    const BACKEND_BASE_URL = window.location.origin;
+
+    // --- 修正後的判斷邏輯 ---
+    
+    // 1. 內部導航管理 (改用 sessionStorage 確保穩定)
+    function setInternalNav() {
+        sessionStorage.setItem('from_internal_nav', 'true');
+    }
+
+    function navigateTo(url) {
+        setInternalNav();
+        window.location.href = url;
+    }
+
+(function manageModal() {
+        const modal = document.getElementById('backendCheckModal');
+        
+        // 1. 獲取來源網址
+        const referrer = document.referrer;
+        
+        // 2. 判斷是否從 Starting.html 跳轉過來
+        // 檢查來源網址是否包含 "Starting.html"
+        const isFromStarting = referrer.includes('Starting.html');
+
+        // 3. 執行邏輯：只有從 Starting.html 過來，且本會話尚未檢查過時才顯示
+        // 如果您希望每次從 Starting 過來都彈窗，則拿掉 sessionStorage 的判斷
+        if (isFromStarting) {
+            modal.classList.add('show');
+            runBackendCheck();
+        } else {
+            // 從其他頁面（如 alerts.html, about.html）回來，或是直接刷新的，一律隱藏
+            modal.style.display = 'none';
+        }
+    })();
+
+    // ----------------------
+
+    document.getElementById('homeNav').addEventListener('click', function(e) {
+        if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/') {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
+
+    function runBackendCheck() {
+        fetch(`${BACKEND_BASE_URL}/`)
+        .then(res => res.json())
+        .then(data => console.log('Backend Awake'))
+        .catch(err => console.warn('Backend Warming up...'))
+        .finally(() => {
+            setTimeout(() => {
+                const modalText = document.getElementById('modalText');
+                const modalCloseBtn = document.getElementById('modalCloseBtn');
+                const progressBar = document.getElementById('progressBar');
+                if(progressBar) progressBar.classList.add('hidden');
+                if(modalText) modalText.textContent = '準備完成,即刻啟程';
+                if(modalCloseBtn) modalCloseBtn.classList.add('active');
+            }, LOADING_DURATION);
+        });
+    }
+
+    function closeModal() {
+        document.getElementById('backendCheckModal').classList.remove('show');
+    }
+
+    const targets = document.querySelectorAll('.tap-target');
+    targets.forEach(btn => {
+        btn.addEventListener('touchstart', function() { this.classList.add('tapped'); }, { passive: true });
+        const removeEffect = () => setTimeout(() => btn.classList.remove('tapped'), 100);
+        btn.addEventListener('touchend', removeEffect);
+        btn.addEventListener('touchcancel', removeEffect);
+        btn.addEventListener('mousedown', () => btn.classList.add('tapped'));
+        btn.addEventListener('mouseup', removeEffect);
+    });
+
+    // PWA 推送訂閱
+    async function forceSubscribe() {
+        if (!('serviceWorker' in navigator)) return;
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            if (Notification.permission === 'granted') {
+                const sub = await reg.pushManager.getSubscription() || await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: 'YOUR_VAPID_PUBLIC_KEY'
+                });
+            }
+        } catch (err) { console.error('Push Error:', err); }
+    }
+
+    window.onload = () => {
+        if (Notification.permission === 'granted' && !sessionStorage.getItem('push_subscribed')) {
+            forceSubscribe();
+            sessionStorage.setItem('push_subscribed', 'true');
+        }
+    };
+</script>
+</body>
+</html>

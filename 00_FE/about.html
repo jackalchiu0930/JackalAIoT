@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>About - AIoT Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, sans-serif;
+            background-color: #1a1a1a;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: url('./Bg_JackalAIoT.jpg') no-repeat center center;
+            background-size: cover; z-index: -1;
+        }
+
+        .top-padding-spacer { width: 100%; height: 410px; }
+
+        .tap-target {
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.05s linear;
+        }
+        .tap-target::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0);
+            transition: background 0.05s linear;
+            pointer-events: none;
+            z-index: 2;
+        }
+        .tapped { transform: scale(0.96) !important; }
+        .tapped::after { background: rgba(255, 255, 255, 0.4) !important; }
+
+        .container { 
+            background: rgba(255, 255, 255, 0.2); 
+            backdrop-filter: blur(15px); 
+            -webkit-backdrop-filter: blur(15px); 
+            padding: 30px 20px; 
+            border-radius: 20px; 
+            width: 90%; 
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            text-align: center; 
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            margin-bottom: 100px;
+        }
+
+        h2 { font-size: 22px; margin-bottom: 25px; color: #4a90e2; font-weight: bold; }
+
+        .info-card {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 10px;
+        }
+        .info-item:last-child { border-bottom: none; margin-bottom: 0; }
+        .info-label { color: #4a90e2; font-size: 12px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; }
+        .info-value { color: #ffffff; font-size: 16px; font-weight: 500; }
+
+        .btn-back { width: 100%; padding: 14px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; color: white; font-weight: 600; cursor: pointer; font-size: 15px; }
+
+        .nav-bar {
+            position: fixed; bottom: 20px; width: 92%; max-width: 420px;
+            background: rgba(255, 255, 255, 0.3); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            height: 60px; border-radius: 30px; display: flex; justify-content: space-around; align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 -4px 20px rgba(0,0,0,0.15), 0 10px 20px rgba(0,0,0,0.2); z-index: 100;
+        }
+        .nav-item { color: rgba(255, 255, 255, 0.7); text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; height: 80%; border-radius: 20px; }
+        .nav-item.active { color: #007aff; }
+        .nav-item i { font-size: 18px; }
+        .nav-item span { font-size: 10px; }
+    </style>
+</head>
+<body>
+    <div class="top-padding-spacer"></div>
+
+    <div class="container">
+        <h2>關於平台</h2>
+        <div class="info-card">
+            <div class="info-item">
+                <div class="info-label">Front-End Version</div>
+                <div id="fe-ver" class="info-value">Loading...</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Back-End Version</div>
+                <div id="be-ver" class="info-value">Loading...</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Author</div>
+                <div id="author" class="info-value">Loading...</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Organization</div>
+                <div id="org" class="info-value">Loading...</div>
+            </div>
+        </div>
+        
+        <button onclick="navigateTo('index.html')" class="btn-back tap-target">
+            <i class="fas fa-arrow-left"></i> 返回首頁
+        </button>
+    </div>
+
+    <nav class="nav-bar">
+        <a href="index.html" onclick="localStorage.setItem('from_internal_nav', 'true');" class="nav-item tap-target"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="alerts.html" onclick="localStorage.setItem('from_internal_nav', 'true');" class="nav-item tap-target"><i class="fas fa-bell"></i><span>Alerts</span></a>
+        <div class="nav-item tap-target"><i class="fas fa-user"></i><span>Profile</span></div>
+        <div class="nav-item tap-target"><i class="fas fa-cog"></i><span>Settings</span></div>
+        <a href="about.html" class="nav-item active tap-target"><i class="fas fa-info-circle"></i><span>About</span></a>
+    </nav>
+
+    <script>
+        // 【修改點】新增導航函數，統一管理內部跳轉標記，防止 Index 觸發加載窗
+        function navigateTo(url) {
+            localStorage.setItem('from_internal_nav', 'true');
+            window.location.href = url;
+        }
+
+        function applyTapEffect() {
+            const targets = document.querySelectorAll('.tap-target');
+            targets.forEach(btn => {
+                btn.addEventListener('touchstart', function() { this.classList.add('tapped'); }, { passive: true });
+                const removeEffect = () => { setTimeout(() => btn.classList.remove('tapped'), 100); };
+                btn.addEventListener('touchend', removeEffect);
+                btn.addEventListener('touchcancel', removeEffect);
+                btn.addEventListener('mousedown', () => btn.classList.add('tapped'));
+                btn.addEventListener('mouseup', removeEffect);
+            });
+        }
+
+        async function fetchSwInfo() {
+            try {
+                // 在合併後的結構中，sw.js 位於靜態資源根目錄
+                const response = await fetch('./sw.js');
+                const text = await response.text();
+                
+                const getValue = (key) => {
+                    const match = text.match(new RegExp(`const ${key} = ['"](.+?)['\"];`));
+                    return match ? match[1] : 'Unknown';
+                };
+
+                document.getElementById('fe-ver').innerText = getValue('FE_VERSION');
+                document.getElementById('be-ver').innerText = getValue('BE_VERSION');
+                document.getElementById('author').innerText = getValue('AUTHOR');
+                document.getElementById('org').innerText = getValue('ORG');
+            } catch (e) {
+                console.error("Failed to load version info", e);
+                // 若獲取失敗，顯示預設值
+                document.getElementById('fe-ver').innerText = '1.0.0';
+                document.getElementById('be-ver').innerText = '1.1.0';
+                document.getElementById('author').innerText = 'Jackal Chiu';
+                document.getElementById('org').innerText = 'PSA';
+            }
+        }
+
+        window.onload = () => {
+            fetchSwInfo();
+            applyTapEffect();
+        };
+    </script>
+</body>
+</html>

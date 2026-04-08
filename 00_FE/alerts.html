@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>AIoT 警報列表</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* 基礎重置 - 嚴格對齊 Index */
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, sans-serif;
+            background-color: #1a1a1a;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: url('./Bg_JackalAIoT.jpg') no-repeat center center;
+            background-size: cover; z-index: -1;
+        }
+
+        /* 關鍵占位區：確保內容下移 */
+        .top-padding-spacer {
+            width: 100%;
+            height: 410px; 
+        }
+
+        /* --- 零延時觸控樣式 --- */
+        .tap-target {
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.05s linear;
+        }
+        .tap-target::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0);
+            transition: background 0.05s linear;
+            pointer-events: none;
+            z-index: 2;
+        }
+        .tapped {
+            transform: scale(0.96) !important;
+        }
+        .tapped::after {
+            background: rgba(255, 255, 255, 0.4) !important;
+        }
+
+        /* 容器樣式 - 對齊 Index 卡片效果 */
+        .container { 
+            background: rgba(255, 255, 255, 0.2); 
+            backdrop-filter: blur(15px); 
+            -webkit-backdrop-filter: blur(15px); 
+            padding: 25px 20px; 
+            border-radius: 20px; 
+            width: 90%; 
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            text-align: center; 
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            margin-bottom: 100px;
+        }
+
+        h2 { font-size: 20px; margin-bottom: 20px; color: #4a90e2; }
+
+        /* 警報列表內容 */
+        .alert-list { max-height: 380px; overflow-y: auto; margin-bottom: 20px; border-radius: 12px; }
+        .alert-item { background: rgba(0, 0, 0, 0.2); padding: 15px; margin-bottom: 12px; border-radius: 12px; text-align: left; border-left: 4px solid #4a90e2; border-top: 1px solid rgba(255,255,255,0.05); }
+        .alert-time { color: #4a90e2; font-size: 12px; font-weight: bold; margin-bottom: 5px; }
+        .alert-msg { color: #ffffff; font-size: 15px; opacity: 0.9; }
+
+        .btn-back { width: 100%; padding: 14px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; color: white; font-weight: 600; cursor: pointer; font-size: 15px; }
+
+        /* 底部導航欄 - 嚴格對齊 Index */
+        .nav-bar {
+            position: fixed;
+            bottom: 20px;
+            width: 92%;
+            max-width: 420px;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            height: 60px;
+            border-radius: 30px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15), 0 10px 20px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+        .nav-item {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            height: 80%;
+            border-radius: 20px;
+        }
+        .nav-item.active { color: #007aff; }
+        .nav-item i { font-size: 18px; }
+        .nav-item span { font-size: 10px; }
+    </style>
+</head>
+<body>
+    <div class="top-padding-spacer"></div>
+
+    <div class="container">
+        <h2>AIoT 警報列表</h2>
+        <div id="alertList" class="alert-list"><div style="opacity:0.5;">載入中...</div></div>
+        
+        <button onclick="navigateToHome()" class="btn-back tap-target">
+            <i class="fas fa-arrow-left"></i> 返回首頁
+        </button>
+    </div>
+
+    <nav class="nav-bar">
+        <a href="index.html" onclick="localStorage.setItem('from_internal_nav', 'true');" class="nav-item tap-target"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="alerts.html" class="nav-item active tap-target"><i class="fas fa-bell"></i><span>Alerts</span></a>
+        <div class="nav-item tap-target"><i class="fas fa-user"></i><span>Profile</span></div>
+        <div class="nav-item tap-target"><i class="fas fa-cog"></i><span>Settings</span></div>
+        <a href="about.html" onclick="localStorage.setItem('from_internal_nav', 'true');" class="nav-item tap-target"><i class="fas fa-info-circle"></i><span>About</span></a>
+    </nav>
+
+    <script>
+        // --- 功能導向修改：統一導航標記 ---
+        function navigateToHome() {
+            localStorage.setItem('from_internal_nav', 'true');
+            window.location.href = 'index.html';
+        }
+
+        // --- 零延時觸控邏輯 ---
+        function applyTapEffect() {
+            const targets = document.querySelectorAll('.tap-target');
+            targets.forEach(btn => {
+                btn.addEventListener('touchstart', function() { this.classList.add('tapped'); }, { passive: true });
+                const removeEffect = () => { setTimeout(() => btn.classList.remove('tapped'), 100); };
+                btn.addEventListener('touchend', removeEffect);
+                btn.addEventListener('touchcancel', removeEffect);
+                btn.addEventListener('mousedown', () => btn.classList.add('tapped'));
+                btn.addEventListener('mouseup', removeEffect);
+            });
+        }
+
+        /**
+         * 【關鍵功能修改】：合併架構後前端與後端同源。
+         * 直接使用 window.location.origin 獲取當前訪問地址。
+         */
+        const API_URL = window.location.origin;
+        
+        async function loadAlerts() {
+            try {
+                const res = await fetch(`${API_URL}/alerts`, {
+                    // 加強緩存控制
+                    cache: 'no-cache',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    }
+                });
+                const data = await res.json();
+                const alerts = data.alerts || [];
+                const container = document.getElementById('alertList');
+                container.innerHTML = '';
+                
+                if (alerts.length === 0) { 
+                    container.innerHTML = '<div style="padding:20px; opacity:0.5;">目前沒有相關警報</div>'; 
+                    return; 
+                }
+
+                // 倒序排列，最新警報在最上方
+                alerts.reverse().forEach(alert => {
+                    const div = document.createElement('div'); 
+                    div.className = 'alert-item tap-target'; 
+                    div.innerHTML = `<div class="alert-time">${alert.time}</div><div class="alert-msg">${alert.msg}</div>`;
+                    container.appendChild(div);
+                });
+                
+                applyTapEffect(); // 為新生成的列表項綁定觸控效果
+            } catch (e) { 
+                document.getElementById('alertList').innerHTML = '<div style="padding:20px; color:#ff4d4d;">連線失敗</div>'; 
+            }
+        }
+
+        window.onload = () => {
+            loadAlerts();
+            applyTapEffect();
+        };
+    </script>
+</body>
+</html>

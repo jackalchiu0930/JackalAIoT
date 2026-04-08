@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>AIoT 菜單頁面 - menu02</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <style>
+        /* 基礎重置 - 嚴格對齊 test.html */
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, sans-serif;
+            background-color: #1a1a1a;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: url('./Bg_JackalAIoT.jpg') no-repeat center center;
+            background-size: cover; z-index: -1;
+        }
+
+        /* 關鍵占位區：確保內容下移 */
+        .top-padding-spacer {
+            width: 100%;
+            height: 410px; 
+        }
+
+        /* --- 零延時觸控樣式 --- */
+        .tap-target {
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.05s linear;
+        }
+        .tap-target::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0);
+            transition: background 0.05s linear;
+            pointer-events: none;
+            z-index: 2;
+        }
+        .tapped {
+            transform: scale(0.96) !important;
+        }
+        .tapped::after {
+            background: rgba(255, 255, 255, 0.4) !important;
+        }
+
+        /* 容器樣式 - 對齊 test.html 卡片效果 */
+        .container { 
+            background: rgba(255, 255, 255, 0.2); 
+            backdrop-filter: blur(15px); 
+            -webkit-backdrop-filter: blur(15px);
+            padding: 25px 20px; 
+            border-radius: 20px; 
+            width: 90%; 
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            text-align: center; 
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            margin-bottom: 100px;
+        }
+
+        h2 { font-size: 20px; margin-bottom: 20px; color: #4a90e2; }
+
+        /* UI 元素樣式 - 與 test.html 一致 */
+        .ui-element { width: 100%; padding: 14px; margin: 10px 0; border-radius: 12px; border: none; font-size: 16px; outline: none; }
+
+        .btn { cursor: pointer; font-weight: 600; color: white; display: block; text-decoration: none; }
+        .btn-blue { background: rgba(74, 144, 226, 0.8); border: 1px solid rgba(255,255,255,0.2); }
+        .btn-green { background: rgba(76, 175, 80, 0.8); border: 1px solid rgba(255,255,255,0.2); }
+        .btn-red { background: rgba(244, 67, 54, 0.8); border: 1px solid rgba(255,255,255,0.2); }
+        .btn-orange { background: rgba(255, 152, 0, 0.8); border: 1px solid rgba(255,255,255,0.2); }
+
+        .display-box { background: rgba(0, 0, 0, 0.2); border: 1px dashed #4a90e2; color: #4a90e2; font-size: 28px; font-weight: bold; min-height: 65px; display: flex; justify-content: center; align-items: center; }
+
+        .upload-section { margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .file-label { display: block; background: rgba(255,255,255,0.1); padding: 12px; border-radius: 10px; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); font-size: 14px; color: #fff; }
+
+        /* 底部導航欄 - 嚴格對齊 test.html */
+        .nav-bar {
+            position: fixed;
+            bottom: 20px;
+            width: 92%;
+            max-width: 420px;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            height: 60px;
+            border-radius: 30px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15), 0 10px 20px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+        .nav-item {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            height: 80%;
+            border-radius: 20px;
+        }
+        .nav-item.active { color: #007aff; }
+        .nav-item i { font-size: 18px; }
+        .nav-item span { font-size: 10px; }
+
+        /* 圖片上傳掃碼區域樣式 */
+        .scan-upload-section {
+            margin-top: 15px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            border: 2px dashed rgba(76, 175, 80, 0.5);
+        }
+
+        .scan-upload-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 20px;
+            cursor: pointer;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .scan-upload-label i {
+            font-size: 48px;
+            color: #4caf50;
+            margin-bottom: 15px;
+        }
+
+        .scan-upload-label .main-text {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .scan-upload-label .sub-text {
+            font-size: 13px;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .scan-preview {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            border-radius: 10px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .scan-result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .scan-success {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+            color: #4caf50;
+        }
+
+        .scan-error {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+            color: #ff6b6b;
+        }
+
+        .scan-loading {
+            display: none;
+            margin-top: 15px;
+        }
+
+        .scan-loading i {
+            font-size: 24px;
+            color: #4a90e2;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* 重試按鈕 */
+        .retry-btn {
+            background: rgba(74, 144, 226, 0.8) !important;
+            margin-top: 10px !important;
+        }
+
+        /* 新增：快捷操作區域 */
+        .quick-actions {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .quick-actions-title {
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        /* 新增：歷史工號快速選擇區 */
+        .history-section {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            display: none;
+        }
+
+        .history-section.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .history-title {
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 10px;
+        }
+
+        .history-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .history-chip {
+            background: rgba(255, 152, 0, 0.3);
+            border: 1px solid rgba(255, 152, 0, 0.5);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .history-chip:hover {
+            background: rgba(255, 152, 0, 0.6);
+        }
+
+        .history-chip i {
+            font-size: 12px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div class="top-padding-spacer"></div>
+
+    <div class="container">
+        <h2>AIoT 菜單頁面 - menu02</h2>
+        <button class="ui-element btn btn-blue tap-target" onclick="location.href='class.html'">前後端驗證區</button>
+        <button class="ui-element btn btn-blue tap-target" onclick="location.href='barcode.html'">掃碼功能測試</button>
+        <button class="ui-element btn btn-green tap-target" onclick="showScanSection()">
+            <i class="fas fa-qrcode"></i> 課堂掃碼簽到
+        </button>
+
+        <button class="ui-element btn btn-orange tap-target" onclick="viewCalendar()">
+            <i class="fas fa-calendar-alt"></i> 查看簽到日曆
+        </button>
+
+        <div class="history-section" id="historySection">
+            <div class="history-title"><i class="fas fa-history"></i> 快速查看歷史工號：</div>
+            <div class="history-chips" id="historyChips"></div>
+        </div>
+
+        <button class="ui-element btn btn-blue tap-target">按鈕4 - 暫無功能</button>
+
+        <div class="scan-upload-section" id="scanSection" style="display: none;">
+            
+            <div class="scan-loading" id="scanLoading" style="display: block;">
+                <i class="fas fa-spinner"></i>
+                <p style="margin-top: 10px; color: rgba(255,255,255,0.8);">正在開啟相機...</p>
+            </div>
+
+            <video id="qrVideo" style="width: 100%; border-radius: 10px; display: none;" playsinline></video>
+            <canvas id="qrCanvas" style="display: none;"></canvas>
+
+            <div class="scan-result" id="scanResult"></div>
+
+            <button class="ui-element btn retry-btn tap-target" id="retryBtn" onclick="retryScan()" style="display: none;">
+                <i class="fas fa-redo"></i> 重新拍攝
+            </button>
+
+            <button class="ui-element btn btn-red tap-target" onclick="hideScanSection()" style="margin-top: 15px;">
+                <i class="fas fa-times"></i> 取消
+            </button>
+        </div>
+    </div>
+
+    <nav class="nav-bar">
+        <a href="index.html" onclick="localStorage.setItem('from_internal_nav', 'true');" class="nav-item tap-target"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="alerts.html" class="nav-item tap-target"><i class="fas fa-bell"></i><span>Alerts</span></a>
+        <div class="nav-item tap-target"><i class="fas fa-user"></i><span>Profile</span></div>
+        <div class="nav-item tap-target"><i class="fas fa-cog"></i><span>Settings</span></div>
+        <a href="about.html" class="nav-item tap-target"><i class="fas fa-info-circle"></i><span>About</span></a>
+    </nav>
+
+    <script>
+        // --- 零延時觸控邏輯 ---
+        const targets = document.querySelectorAll('.tap-target');
+        targets.forEach(btn => {
+            btn.addEventListener('touchstart', function() { this.classList.add('tapped'); }, { passive: true });
+            const removeEffect = () => { setTimeout(() => btn.classList.remove('tapped'), 100); };
+            btn.addEventListener('touchend', removeEffect);
+            btn.addEventListener('touchcancel', removeEffect);
+            btn.addEventListener('mousedown', () => btn.classList.add('tapped'));
+            btn.addEventListener('mouseup', removeEffect);
+        });
+
+        const isLocal = window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1' || 
+                        window.location.hostname === '172.20.10.3';
+        const API_URL = isLocal ? "http://172.20.10.3:8000" : "https://jackalchiu.onrender.com";
+
+        // 即時掃描變數
+        let videoStream = null;
+
+        window.onload = function() {
+            loadHistorySection();
+        };
+
+        function loadHistorySection() {
+            const history = JSON.parse(localStorage.getItem('employeeHistory') || '[]');
+            const historySection = document.getElementById('historySection');
+            const historyChips = document.getElementById('historyChips');
+
+            if (history.length > 0) {
+                historySection.classList.add('show');
+                historyChips.innerHTML = history.map(id => 
+                    `<span class="history-chip tap-target" onclick="quickViewCalendar('${id}')">
+                        <i class="fas fa-user"></i> ${id}
+                    </span>`
+                ).join('');
+                document.querySelectorAll('.history-chip').forEach(btn => {
+                    btn.addEventListener('touchstart', function() { this.classList.add('tapped'); }, { passive: true });
+                    const removeEffect = () => { setTimeout(() => this.classList.remove('tapped'), 100); };
+                    btn.addEventListener('touchend', removeEffect);
+                    btn.addEventListener('touchcancel', removeEffect);
+                });
+            }
+        }
+
+        function quickViewCalendar(employeeId) {
+            localStorage.setItem('currentEmployeeId', employeeId);
+            window.location.href = 'classsful.html';
+        }
+
+        // 啟動即時掃碼
+        function showScanSection() {
+            document.getElementById('scanSection').style.display = 'block';
+            document.getElementById('scanLoading').style.display = 'block';
+            document.getElementById('qrVideo').style.display = 'none';
+            document.getElementById('scanResult').style.display = 'none';
+            document.getElementById('retryBtn').style.display = 'none';
+            startCamera();
+        }
+
+        function startCamera() {
+            const video = document.getElementById('qrVideo');
+            const canvasElement = document.getElementById('qrCanvas');
+            const canvas = canvasElement.getContext('2d', { willReadFrequently: true });
+            
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                .then(function(stream) {
+                    videoStream = stream;
+                    video.srcObject = stream;
+                    video.setAttribute("playsinline", true); // iOS需要
+                    video.play();
+                    requestAnimationFrame(tick);
+                })
+                .catch(function(err) {
+                    document.getElementById('scanLoading').style.display = 'none';
+                    const resultDiv = document.getElementById('scanResult');
+                    resultDiv.className = 'scan-result scan-error';
+                    resultDiv.innerHTML = '<i class="fas fa-times-circle"></i> 無法取得相機權限';
+                    resultDiv.style.display = 'block';
+                });
+            } else {
+                alert("此瀏覽器不支援相機功能。");
+            }
+
+            function tick() {
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    document.getElementById('scanLoading').style.display = 'none';
+                    video.style.display = 'block';
+                    canvasElement.height = video.videoHeight;
+                    canvasElement.width = video.videoWidth;
+                    canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+                    var imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                    
+                    var code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: "dontInvert",
+                    });
+                    
+                    if (code) {
+                        if (code.data.includes('classjoin.html')) {
+                            stopCamera();
+                            const resultDiv = document.getElementById('scanResult');
+                            resultDiv.className = 'scan-result scan-success';
+                            resultDiv.innerHTML = '<i class="fas fa-check-circle"></i> 識別成功！即將跳轉...';
+                            resultDiv.style.display = 'block';
+                            
+                            setTimeout(() => {
+                                window.location.href = code.data;
+                            }, 1000);
+                            return; // 停止 tick
+                        }
+                    }
+                }
+                if (videoStream) {
+                    requestAnimationFrame(tick);
+                }
+            }
+        }
+
+        function stopCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+            document.getElementById('qrVideo').style.display = 'none';
+        }
+
+        function hideScanSection() {
+            stopCamera();
+            document.getElementById('scanSection').style.display = 'none';
+            document.getElementById('scanResult').style.display = 'none';
+            document.getElementById('retryBtn').style.display = 'none';
+        }
+
+        function retryScan() {
+            document.getElementById('scanResult').style.display = 'none';
+            document.getElementById('retryBtn').style.display = 'none';
+            document.getElementById('scanLoading').style.display = 'block';
+            startCamera();
+        }
+
+        function viewCalendar() {
+            const currentEmployeeId = localStorage.getItem('currentEmployeeId');
+            if (currentEmployeeId && currentEmployeeId.length === 8) {
+                window.location.href = 'classsful.html';
+            } else {
+                window.location.href = 'classsful.html';
+            }
+        }
+    </script>
+</body>
+</html>

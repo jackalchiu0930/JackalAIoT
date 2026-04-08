@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>簽到記錄行事曆 - AIoT Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* 基礎重置 - 嚴格對齊其他頁面 */
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, sans-serif;
+            background-color: #1a1a1a;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: url('./Bg_JackalAIoT.jpg') no-repeat center center;
+            background-size: cover; z-index: -1;
+        }
+
+        /* 關鍵占位區 */
+        .top-padding-spacer { width: 100%; height: 410px; }
+
+        /* --- 零延時觸控樣式 --- */
+        .tap-target {
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.05s linear;
+        }
+        .tap-target::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0);
+            transition: background 0.05s linear;
+            pointer-events: none;
+            z-index: 2;
+        }
+        .tapped { transform: scale(0.96) !important; }
+        .tapped::after { background: rgba(255, 255, 255, 0.4) !important; }
+
+        /* 容器樣式 */
+        .container { 
+            background: rgba(255, 255, 255, 0.2); 
+            backdrop-filter: blur(15px); 
+            -webkit-backdrop-filter: blur(15px);
+            padding: 30px 20px; 
+            border-radius: 20px; 
+            width: 90%; 
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            text-align: center; 
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            margin-bottom: 100px;
+        }
+
+        h2 { font-size: 22px; margin-bottom: 10px; color: #4a90e2; font-weight: bold; }
+        .subtitle { font-size: 14px; color: rgba(255,255,255,0.7); margin-bottom: 25px; }
+
+        /* 員工信息卡片 */
+        .employee-info {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(74, 144, 226, 0.3);
+        }
+
+        .employee-id {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4a90e2;
+            letter-spacing: 2px;
+        }
+
+        .course-name {
+            font-size: 14px;
+            color: rgba(255,255,255,0.8);
+            margin-top: 8px;
+        }
+
+        /* 工號輸入區域 */
+        .employee-input-section {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 152, 0, 0.3);
+        }
+
+        .employee-input {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            font-size: 20px;
+            text-align: center;
+            letter-spacing: 2px;
+            outline: none;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+
+        .employee-input:focus {
+            border-color: #4a90e2;
+            background: rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 15px rgba(74, 144, 226, 0.3);
+        }
+
+        .employee-input::placeholder {
+            color: rgba(255,255,255,0.4);
+            font-size: 16px;
+            letter-spacing: 0;
+        }
+
+        /* 統計信息 */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #4a90e2;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+            margin-top: 5px;
+        }
+
+        /* 行事曆樣式 - 修改重點 */
+        .calendar-container {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 15px; /* 稍微縮減內距增加內容空間 */
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .calendar-month {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4a90e2;
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            background: rgba(74, 144, 226, 0.3);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: rgba(74, 144, 226, 0.6);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* 星期標題 - 確保與日期格網格設定一致 */
+        .weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .weekday {
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+            text-align: center;
+            padding: 8px 0;
+        }
+
+        .weekday.weekend {
+            color: #ff6b6b;
+        }
+
+        /* 日期網格 - 確保與星期標題對齊且不溢出 */
+        .days-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 5px;
+        }
+
+        .day-cell {
+            aspect-ratio: 1;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            font-size: 14px;
+            position: relative;
+            transition: all 0.3s ease;
+            min-height: 35px; /* 降低最小高度以適應窄屏，透過 aspect-ratio 維持正方形 */
+        }
+
+        .day-cell.other-month {
+            opacity: 0.3;
+        }
+
+        .day-cell.today {
+            background: rgba(74, 144, 226, 0.2);
+            border: 1px solid rgba(74, 144, 226, 0.5);
+        }
+
+        .day-cell.checked {
+            background: rgba(74, 144, 226, 0.6);
+            border: 1px solid rgba(74, 144, 226, 0.8);
+            box-shadow: 0 0 10px rgba(74, 144, 226, 0.4);
+        }
+
+        .day-cell.checked::after {
+            content: "✓";
+            position: absolute;
+            bottom: 2px;
+            font-size: 10px;
+            color: white;
+        }
+
+        .day-number {
+            font-weight: 500;
+        }
+
+        .day-cell.weekend {
+            color: #ff6b6b;
+        }
+
+        /* 圖例 */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .legend-dot.checked {
+            background: rgba(74, 144, 226, 0.6);
+            border: 1px solid rgba(74, 144, 226, 0.8);
+        }
+
+        .legend-dot.today {
+            background: rgba(74, 144, 226, 0.2);
+            border: 1px solid rgba(74, 144, 226, 0.5);
+        }
+
+        .legend-dot.normal {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* 簽到記錄列表 */
+        .records-container {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .records-title {
+            font-size: 16px;
+            color: #4a90e2;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .record-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border-left: 3px solid #4a90e2;
+        }
+
+        .record-date {
+            font-size: 14px;
+            color: white;
+        }
+
+        .record-time {
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .record-status {
+            background: rgba(76, 175, 80, 0.3);
+            color: #4caf50;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* 按鈕樣式 */
+        .btn { 
+            width: 100%; 
+            padding: 16px; 
+            margin: 10px 0; 
+            border-radius: 12px; 
+            border: none; 
+            font-size: 16px; 
+            outline: none;
+            cursor: pointer; 
+            font-weight: 600; 
+            color: white; 
+            display: block; 
+            text-decoration: none; 
+            transition: all 0.3s ease;
+        }
+
+        .btn-blue { 
+            background: rgba(74, 144, 226, 0.8); 
+            border: 1px solid rgba(255,255,255,0.2); 
+        }
+
+        .btn-blue:hover {
+            background: rgba(74, 144, 226, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(74, 144, 226, 0.4);
+        }
+
+        .btn-orange {
+            background: rgba(255, 152, 0, 0.8);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .btn-orange:hover {
+            background: rgba(255, 152, 0, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
+        }
+
+        /* 底部導航欄 */
+        .nav-bar {
+            position: fixed;
+            bottom: 20px;
+            width: 92%;
+            max-width: 420px;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            height: 60px;
+            border-radius: 30px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15), 0 10px 20px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+        .nav-item {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            height: 80%;
+            border-radius: 20px;
+        }
+        .nav-item.active { color: #007aff; }
+        .nav-item i { font-size: 18px; }
+        .nav-item span { font-size: 10px; }
+
+        /* 載入中/歷史工號樣式保持不變... */
+        .loading { text-align: center; padding: 40px; color: rgba(255,255,255,0.6); }
+        .loading i { font-size: 40px; color: #4a90e2; animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .no-records { text-align: center; padding: 30px; color: rgba(255,255,255,0.5); }
+        .no-records i { font-size: 48px; margin-bottom: 15px; color: rgba(255,255,255,0.3); }
+        .history-section { margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .history-title { font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 10px; }
+        .history-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+        .history-chip { background: rgba(74, 144, 226, 0.3); border: 1px solid rgba(74, 144, 226, 0.5); color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; cursor: pointer; transition: all 0.3s ease; }
+        .history-chip:hover { background: rgba(74, 144, 226, 0.6); }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div class="top-padding-spacer"></div>
+
+    <div class="container">
+        <h2><i class="fas fa-calendar-alt"></i> 簽到記錄行事曆</h2>
+        <div class="subtitle">查看您的課程簽到歷史</div>
+
+        <div class="employee-info" id="employeeInfo" style="display: none;">
+            <div class="employee-id" id="employeeIdDisplay">--------</div>
+            <div class="course-name" id="courseName">AIoT 智慧物聯網培訓</div>
+        </div>
+
+        <div class="employee-input-section" id="employeeInputSection">
+            <div class="input-label" style="color: #ff9800; margin-bottom: 10px;">
+                <i class="fas fa-id-card"></i> 請輸入工號查看記錄
+            </div>
+            <input 
+                type="text" 
+                id="employeeIdInput" 
+                class="employee-input tap-target" 
+                placeholder="請輸入8位工號"
+                maxlength="8"
+                pattern="\d*"
+                inputmode="numeric"
+            >
+            <button class="btn btn-orange tap-target" onclick="loadWithInput()">
+                <i class="fas fa-search"></i> 查詢簽到記錄
+            </button>
+
+            <div class="history-section" id="historySection" style="display: none;">
+                <div class="history-title">或選擇歷史工號：</div>
+                <div class="history-chips" id="historyChips"></div>
+            </div>
+        </div>
+
+        <div class="stats-container" id="statsContainer" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-value" id="totalCheckins">0</div>
+                <div class="stat-label">總簽到次數</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="currentMonthCheckins">0</div>
+                <div class="stat-label">本月簽到</div>
+            </div>
+        </div>
+
+        <div class="calendar-container" id="calendarContainer" style="display: none;">
+            <div class="calendar-header">
+                <button class="nav-btn tap-target" onclick="changeMonth(-1)">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="calendar-month" id="calendarMonth">2026年 3月</div>
+                <button class="nav-btn tap-target" onclick="changeMonth(1)">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+
+            <div class="weekdays">
+                <div class="weekday">日</div>
+                <div class="weekday">一</div>
+                <div class="weekday">二</div>
+                <div class="weekday">三</div>
+                <div class="weekday">四</div>
+                <div class="weekday">五</div>
+                <div class="weekday weekend">六</div>
+            </div>
+
+            <div class="days-grid" id="daysGrid"></div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-dot checked"></div>
+                    <span>已簽到</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot today"></div>
+                    <span>今天</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot normal"></div>
+                    <span>未簽到</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="records-container" id="recordsContainer" style="display: none;">
+            <div class="records-title"><i class="fas fa-list"></i> 簽到記錄</div>
+            <div id="recordsList">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <p>載入中...</p>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn btn-blue tap-target" id="switchEmployeeBtn" onclick="switchEmployee()" style="display: none;">
+            <i class="fas fa-exchange-alt"></i> 切換其他工號
+        </button>
+
+        <button onclick="window.location.href='menu02.html'" class="btn btn-blue tap-target">
+            <i class="fas fa-arrow-left"></i> 返回選單
+        </button>
+    </div>
+
+    <nav class="nav-bar">
+        <a href="index.html" class="nav-item tap-target"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="alerts.html" class="nav-item tap-target"><i class="fas fa-bell"></i><span>Alerts</span></a>
+        <div class="nav-item tap-target"><i class="fas fa-user"></i><span>Profile</span></div>
+        <div class="nav-item tap-target"><i class="fas fa-cog"></i><span>Settings</span></div>
+        <a href="about.html" class="nav-item tap-target"><i class="fas fa-info-circle"></i><span>About</span></a>
+    </nav>
+
+    <script>
+        function applyTapEffect() {
+            const targets = document.querySelectorAll('.tap-target');
+            targets.forEach(btn => {
+                btn.addEventListener('touchstart', function() { this.classList.add('tapped'); }, { passive: true });
+                const removeEffect = () => { setTimeout(() => btn.classList.remove('tapped'), 100); };
+                btn.addEventListener('touchend', removeEffect);
+                btn.addEventListener('touchcancel', removeEffect);
+                btn.addEventListener('mousedown', () => btn.classList.add('tapped'));
+                btn.addEventListener('mouseup', removeEffect);
+            });
+        }
+
+        const hostname = window.location.hostname;
+        let API_URL = "https://jackalchiu.onrender.com";
+        
+        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '172.20.10.3') {
+            API_URL = "http://172.20.10.3:8000";
+        } else if (hostname.includes('ngrok')) {
+            API_URL = window.location.origin;
+        }
+
+        let currentDate = new Date();
+        let employeeId = '';
+        let checkinRecords = [];
+        let courseName = 'AIoT 智慧物聯網培訓';
+
+        async function initPage() {
+            applyTapEffect();
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlEmployeeId = urlParams.get('employee_id');
+            const storedEmployeeId = localStorage.getItem('currentEmployeeId');
+            employeeId = urlEmployeeId || storedEmployeeId || '';
+            if (employeeId && employeeId.length === 8) {
+                await loadEmployeeData();
+            } else {
+                showInputSection();
+            }
+        }
+
+        function showInputSection() {
+            document.getElementById('employeeInputSection').style.display = 'block';
+            document.getElementById('employeeInfo').style.display = 'none';
+            document.getElementById('statsContainer').style.display = 'none';
+            document.getElementById('calendarContainer').style.display = 'none';
+            document.getElementById('recordsContainer').style.display = 'none';
+            document.getElementById('switchEmployeeBtn').style.display = 'none';
+            loadHistoryChips();
+            document.getElementById('employeeIdInput').focus();
+        }
+
+        function loadHistoryChips() {
+            const history = JSON.parse(localStorage.getItem('employeeHistory') || '[]');
+            const historySection = document.getElementById('historySection');
+            const historyChips = document.getElementById('historyChips');
+            if (history.length > 0) {
+                historySection.style.display = 'block';
+                historyChips.innerHTML = history.map(id => 
+                    `<span class="history-chip tap-target" onclick="selectHistoryEmployee('${id}')">${id}</span>`
+                ).join('');
+                applyTapEffect();
+            } else {
+                historySection.style.display = 'none';
+            }
+        }
+
+        function selectHistoryEmployee(id) {
+            document.getElementById('employeeIdInput').value = id;
+            loadWithInput();
+        }
+
+        async function loadWithInput() {
+            const input = document.getElementById('employeeIdInput').value.trim();
+            if (input.length !== 8) {
+                alert('請輸入有效的8位員工工號');
+                return;
+            }
+            employeeId = input;
+            await loadEmployeeData();
+        }
+
+        function switchEmployee() {
+            employeeId = '';
+            localStorage.removeItem('currentEmployeeId');
+            showInputSection();
+        }
+
+        async function loadEmployeeData() {
+            try {
+                const checkRes = await fetch(`${API_URL}/check-employee/${employeeId}`);
+                if (!checkRes.ok) {
+                    alert(`伺服器異常 (HTTP ${checkRes.status})。`);
+                    switchEmployee();
+                    return;
+                }
+                const checkData = await checkRes.json();
+                if (checkData.status !== 'success') {
+                    alert(checkData.message || '非註冊學員,請前往申請後再重試');
+                    switchEmployee();
+                    return;
+                }
+                localStorage.setItem('currentEmployeeId', employeeId);
+                let history = JSON.parse(localStorage.getItem('employeeHistory') || '[]');
+                if (!history.includes(employeeId)) {
+                    history.push(employeeId);
+                    localStorage.setItem('employeeHistory', JSON.stringify(history));
+                }
+                document.getElementById('employeeInputSection').style.display = 'none';
+                document.getElementById('employeeInfo').style.display = 'block';
+                document.getElementById('employeeIdDisplay').textContent = employeeId;
+                await loadCheckinRecords();
+                document.getElementById('statsContainer').style.display = 'grid';
+                document.getElementById('calendarContainer').style.display = 'block';
+                document.getElementById('recordsContainer').style.display = 'block';
+                document.getElementById('switchEmployeeBtn').style.display = 'block';
+                renderCalendar();
+                renderRecordsList();
+                updateStats();
+            } catch (error) {
+                console.error('驗證或載入失敗:', error);
+                alert('系統發生錯誤，請檢查網路連線。');
+            }
+        }
+
+        async function loadCheckinRecords() {
+            try {
+                const response = await fetch(`${API_URL}/get-checkin-records/${employeeId}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                    cache: 'no-cache'
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    checkinRecords = data.checkin_records || [];
+                    if (data.course_name) {
+                        courseName = data.course_name;
+                        document.getElementById('courseName').textContent = courseName;
+                    }
+                    localStorage.setItem(`checkin_records_${employeeId}`, JSON.stringify(checkinRecords));
+                } else {
+                    throw new Error('查詢失敗');
+                }
+            } catch (error) {
+                console.error('載入簽到記錄失敗:', error);
+                const localRecords = localStorage.getItem(`checkin_records_${employeeId}`);
+                if (localRecords) {
+                    checkinRecords = JSON.parse(localRecords);
+                } else {
+                    checkinRecords = [];
+                }
+            }
+        }
+
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            document.getElementById('calendarMonth').textContent = `${year}年 ${month + 1}月`;
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDayOfWeek = firstDay.getDay();
+            const prevMonth = new Date(year, month, 0);
+            const daysInPrevMonth = prevMonth.getDate();
+            const daysGrid = document.getElementById('daysGrid');
+            daysGrid.innerHTML = '';
+
+            for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+                const dayNum = daysInPrevMonth - i;
+                const dayCell = createDayCell(dayNum, true, false, false);
+                daysGrid.appendChild(dayCell);
+            }
+
+            const today = new Date();
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}/${String(month + 1).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
+                const isToday = year === today.getFullYear() && month === today.getMonth() && day === today.getDate();
+                const isChecked = isDateChecked(dateStr);
+                const isWeekend = (startingDayOfWeek + day - 1) % 7 === 0 || (startingDayOfWeek + day - 1) % 7 === 6;
+                const dayCell = createDayCell(day, false, isToday, isChecked, isWeekend);
+                daysGrid.appendChild(dayCell);
+            }
+
+            const totalCells = daysGrid.children.length;
+            const remainingCells = 42 - totalCells;
+            for (let day = 1; day <= remainingCells; day++) {
+                const dayCell = createDayCell(day, true, false, false);
+                daysGrid.appendChild(dayCell);
+            }
+        }
+
+        function createDayCell(dayNum, isOtherMonth, isToday, isChecked, isWeekend = false) {
+            const cell = document.createElement('div');
+            cell.className = 'day-cell';
+            if (isOtherMonth) cell.classList.add('other-month');
+            if (isToday) cell.classList.add('today');
+            if (isChecked) cell.classList.add('checked');
+            if (isWeekend && !isOtherMonth) cell.classList.add('weekend');
+            cell.innerHTML = `<span class="day-number">${dayNum}</span>`;
+            return cell;
+        }
+
+        function isDateChecked(dateStr) {
+            return checkinRecords.some(record => {
+                const recordDate = record.timestamp.split(' ')[0];
+                return recordDate === dateStr;
+            });
+        }
+
+        function changeMonth(direction) {
+            currentDate.setMonth(currentDate.getMonth() + direction);
+            renderCalendar();
+            updateStats();
+        }
+
+        function renderRecordsList() {
+            const recordsList = document.getElementById('recordsList');
+            if (checkinRecords.length === 0) {
+                recordsList.innerHTML = `<div class="no-records"><i class="fas fa-calendar-times"></i><p>暫無簽到記錄</p></div>`;
+                return;
+            }
+            const sortedRecords = [...checkinRecords].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            recordsList.innerHTML = sortedRecords.map(record => {
+                const formattedTimestamp = record.timestamp.replace(/\//g, '-');
+                const date = new Date(formattedTimestamp);
+                const dateStr = date.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' });
+                const timeStr = date.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+                return `<div class="record-item"><div><div class="record-date">${dateStr}</div><div class="record-time">${timeStr}</div></div><div class="record-status">已簽到</div></div>`;
+            }).join('');
+        }
+
+        function updateStats() {
+            document.getElementById('totalCheckins').textContent = checkinRecords.length;
+            const currentYear = currentDate.getFullYear();
+            const currentMonth = currentDate.getMonth();
+            const monthCheckins = checkinRecords.filter(record => {
+                const formattedTimestamp = record.timestamp.replace(/\//g, '-');
+                const recordDate = new Date(formattedTimestamp);
+                return recordDate.getFullYear() === currentYear && recordDate.getMonth() === currentMonth;
+            }).length;
+            document.getElementById('currentMonthCheckins').textContent = monthCheckins;
+        }
+
+        document.getElementById('employeeIdInput').addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
+        window.onload = initPage;
+    </script>
+</body>
+</html>

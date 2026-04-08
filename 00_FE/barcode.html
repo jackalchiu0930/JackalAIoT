@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>實時掃碼識別 - AIoT</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <style>
+        /* 基礎重置 - 確保 1:1 渲染 */
+        * { 
+            margin: 0; padding: 0; box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent; 
+            -webkit-text-size-adjust: none; /* 強制關閉系統自動調整 */
+        }
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background-color: #1a1a1a;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: url('./Bg_JackalAIoT.jpg') no-repeat center center;
+            background-size: cover; z-index: -1;
+        }
+
+        .top-padding-spacer { width: 100%; height: 410px; }
+
+        .container { 
+            background: rgba(255, 255, 255, 0.2); 
+            backdrop-filter: blur(15px); 
+            -webkit-backdrop-filter: blur(15px);
+            padding: 25px 20px; 
+            border-radius: 20px; 
+            width: 90%; 
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            text-align: center; 
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            margin-bottom: 100px;
+        }
+
+        h2 { font-size: 20px; margin-bottom: 20px; color: #4a90e2; }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            border: 2px solid rgba(74, 144, 226, 0.5);
+            margin-bottom: 20px;
+        }
+
+        .video-wrapper.scanned {
+            background: rgba(255, 255, 255, 0.1) !important;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-color: rgba(76, 175, 80, 0.6);
+        }
+
+        #video-preview { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+        .scan-line {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 2px;
+            background: #4a90e2;
+            animation: scan 2s linear infinite;
+            z-index: 5;
+        }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+
+        /* 按鈕樣式基準 */
+        .ui-element { 
+            width: 100%; 
+            height: 54px; /* 固定高度以精確對齊 */
+            padding: 0 15px; 
+            margin: 10px 0; 
+            border-radius: 12px; 
+            border: none; 
+            font-size: 16px; 
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            outline: none;
+        }
+        .btn-blue { background: rgba(74, 144, 226, 0.8); border: 1px solid rgba(255,255,255,0.2); color: white; }
+        .btn-gray { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2); color: white; text-decoration: none; }
+
+        .tap-target:active { transform: scale(0.96); }
+
+        /* 導航欄 */
+        .nav-bar {
+            position: fixed; bottom: 20px; width: 92%; max-width: 420px;
+            background: rgba(255, 255, 255, 0.3); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            height: 60px; border-radius: 30px; display: flex; justify-content: space-around; align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 -4px 20px rgba(0,0,0,0.15); z-index: 100;
+        }
+        .nav-item { color: rgba(255, 255, 255, 0.7); text-decoration: none; display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .nav-item i { font-size: 18px; }
+        .nav-item span { font-size: 10px; }
+    </style>
+</head>
+<body>
+    <div class="top-padding-spacer"></div>
+
+    <div class="container">
+        <h2>實時掃碼識別</h2>
+        
+        <div class="video-wrapper" id="scanner-container">
+            <div class="scan-line" id="line"></div>
+            <video id="video-preview" playsinline></video>
+            <canvas id="scan-canvas" style="display:none;"></canvas>
+        </div>
+
+        <div id="resultBox" 
+             style="display:none; width:100%; height:54px; background:rgba(0,0,0,0.3); border-left:4px solid #4a90e2; border-radius:12px; margin-bottom:15px; color:white; text-align:left; padding:0 15px; 
+                    font-size:16px !important; line-height:54px; font-weight:500; -webkit-text-size-adjust:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+        </div>
+
+        <button id="copyBtn" class="ui-element btn-blue tap-target" style="display:none;" onclick="copyResult()">
+            <i class="fas fa-copy" style="margin-right:8px;"></i> 複製結果
+        </button>
+
+        <button id="restartBtn" class="ui-element btn-blue tap-target" style="display:none;" onclick="startCamera()">
+            <i class="fas fa-redo" style="margin-right:8px;"></i> 重新開啟相機
+        </button>
+
+        <a href="menu02.html" class="ui-element btn-gray tap-target">
+            <i class="fas fa-arrow-left" style="margin-right:8px;"></i> 返回選單
+        </a>
+    </div>
+
+    <nav class="nav-bar">
+        <a href="index.html" class="nav-item"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="alerts.html" class="nav-item"><i class="fas fa-bell"></i><span>Alerts</span></a>
+        <div class="nav-item"><i class="fas fa-user"></i><span>Profile</span></div>
+        <div class="nav-item"><i class="fas fa-cog"></i><span>Settings</span></div>
+        <a href="about.html" class="nav-item"><i class="fas fa-info-circle"></i><span>About</span></a>
+    </nav>
+
+    <script>
+        const scannerContainer = document.getElementById('scanner-container');
+        const video = document.getElementById('video-preview');
+        const canvas = document.getElementById('scan-canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const resultBox = document.getElementById('resultBox');
+        const scanLine = document.getElementById('line');
+        const copyBtn = document.getElementById('copyBtn');
+        const restartBtn = document.getElementById('restartBtn');
+
+        let stream = null;
+        let isScanning = false;
+
+        async function startCamera() {
+            try {
+                scannerContainer.classList.remove('scanned');
+                video.style.display = 'block';
+                resultBox.style.display = 'none';
+                copyBtn.style.display = 'none';
+                restartBtn.style.display = 'none';
+                scanLine.style.display = 'block';
+
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "environment" } 
+                });
+                video.srcObject = stream;
+                video.play();
+                isScanning = true;
+                requestAnimationFrame(tick);
+            } catch (err) {
+                console.error("相機開啟失敗:", err);
+            }
+        }
+
+        function tick() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA && isScanning) {
+                canvas.height = video.videoHeight;
+                canvas.width = video.videoWidth;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                if (code) { onSuccess(code.data); return; }
+            }
+            if (isScanning) requestAnimationFrame(tick);
+        }
+
+        function onSuccess(data) {
+            isScanning = false;
+            if (stream) { stream.getTracks().forEach(track => track.stop()); }
+
+            video.style.display = 'none'; 
+            scannerContainer.classList.add('scanned'); 
+            scanLine.style.display = 'none'; 
+
+            resultBox.innerText = "識別結果：" + data;
+            resultBox.style.display = 'block'; 
+            
+            copyBtn.style.display = 'flex';
+            restartBtn.style.display = 'flex';
+            
+            if (navigator.vibrate) navigator.vibrate(200);
+        }
+
+        function copyResult() {
+            const text = resultBox.innerText.replace("識別結果：", "");
+            navigator.clipboard.writeText(text);
+            alert("已複製到剪貼簿");
+        }
+
+        window.onload = startCamera;
+    </script>
+</body>
+</html>

@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>課堂簽到 - AIoT Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* 基礎重置 - 嚴格對齊其他頁面 */
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, sans-serif;
+            background-color: #1a1a1a;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: url('./Bg_JackalAIoT.jpg') no-repeat center center;
+            background-size: cover; z-index: -1;
+        }
+
+        /* 關鍵占位區 */
+        .top-padding-spacer { width: 100%; height: 410px; }
+
+        /* --- 零延時觸控樣式 --- */
+        .tap-target {
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.05s linear;
+        }
+        .tap-target::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0);
+            transition: background 0.05s linear;
+            pointer-events: none;
+            z-index: 2;
+        }
+        .tapped { transform: scale(0.96) !important; }
+        .tapped::after { background: rgba(255, 255, 255, 0.4) !important; }
+
+        /* 容器樣式 */
+        .container { 
+            background: rgba(255, 255, 255, 0.2); 
+            backdrop-filter: blur(15px); 
+            -webkit-backdrop-filter: blur(15px);
+            padding: 30px 20px; 
+            border-radius: 20px; 
+            width: 90%; 
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            text-align: center; 
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            margin-bottom: 100px;
+        }
+
+        h2 { font-size: 22px; margin-bottom: 10px; color: #4a90e2; font-weight: bold; }
+        .subtitle { font-size: 14px; color: rgba(255,255,255,0.7); margin-bottom: 25px; }
+
+        /* 簽到表單樣式 */
+        .checkin-form { margin-top: 20px; }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-label {
+            display: block;
+            color: #4a90e2;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            padding-left: 5px;
+        }
+
+        .employee-input {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            font-size: 20px;
+            text-align: center;
+            letter-spacing: 2px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .employee-input:focus {
+            border-color: #4a90e2;
+            background: rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 15px rgba(74, 144, 226, 0.3);
+        }
+
+        .employee-input::placeholder {
+            color: rgba(255,255,255,0.4);
+            font-size: 16px;
+            letter-spacing: 0;
+        }
+
+        /* 按鈕樣式 */
+        .btn { 
+            width: 100%; 
+            padding: 16px; 
+            margin: 10px 0; 
+            border-radius: 12px; 
+            border: none; 
+            font-size: 16px; 
+            outline: none;
+            cursor: pointer; 
+            font-weight: 600; 
+            color: white; 
+            display: block; 
+            text-decoration: none; 
+            transition: all 0.3s ease;
+        }
+
+        .btn-green { 
+            background: rgba(76, 175, 80, 0.8); 
+            border: 1px solid rgba(255,255,255,0.2); 
+        }
+
+        .btn-green:hover {
+            background: rgba(76, 175, 80, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-blue { 
+            background: rgba(74, 144, 226, 0.8); 
+            border: 1px solid rgba(255,255,255,0.2); 
+        }
+
+        .btn-blue:hover {
+            background: rgba(74, 144, 226, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(74, 144, 226, 0.4);
+        }
+
+        .btn-orange {
+            background: rgba(255, 152, 0, 0.8);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .btn-orange:hover {
+            background: rgba(255, 152, 0, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
+        }
+
+        /* 狀態提示 */
+        .status-msg {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status-error {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+            color: #ff6b6b;
+            display: block;
+        }
+
+        .status-success {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+            color: #4caf50;
+            display: block;
+        }
+
+        /* 底部導航欄 */
+        .nav-bar {
+            position: fixed;
+            bottom: 20px;
+            width: 92%;
+            max-width: 420px;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            height: 60px;
+            border-radius: 30px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15), 0 10px 20px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+        .nav-item {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            height: 80%;
+            border-radius: 20px;
+        }
+        .nav-item.active { color: #007aff; }
+        .nav-item i { font-size: 18px; }
+        .nav-item span { font-size: 10px; }
+
+        /* 簽到成功彈窗 */
+        .success-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            backdrop-filter: blur(10px);
+        }
+
+        .success-modal.show { display: flex; }
+
+        .success-content {
+            background: rgba(76, 175, 80, 0.15);
+            border: 2px solid rgba(76, 175, 80, 0.5);
+            border-radius: 25px;
+            padding: 50px 40px;
+            text-align: center;
+            width: 85%;
+            max-width: 350px;
+            animation: successPop 0.5s ease;
+        }
+
+        @keyframes successPop {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .success-icon {
+            font-size: 80px;
+            color: #4caf50;
+            margin-bottom: 20px;
+            text-shadow: 0 0 30px rgba(76, 175, 80, 0.6);
+        }
+
+        .success-title {
+            font-size: 28px;
+            color: #4caf50;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .success-text {
+            font-size: 16px;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 30px;
+        }
+
+        .success-time {
+            font-size: 14px;
+            color: #4a90e2;
+            margin-bottom: 30px;
+            padding: 10px 20px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            display: inline-block;
+        }
+
+        .success-close {
+            background: rgba(76, 175, 80, 0.8);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .success-close:hover {
+            background: rgba(76, 175, 80, 1);
+            transform: scale(1.05);
+        }
+
+        /* 查看日曆按鈕容器 */
+        .calendar-btn-container {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: none;
+        }
+
+        .calendar-btn-container.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div class="top-padding-spacer"></div>
+
+    <div class="container">
+        <h2><i class="fas fa-clipboard-check"></i> 課堂簽到</h2>
+        <div class="subtitle">請輸入您的8位員工工號</div>
+
+        <div class="checkin-form">
+            <div class="input-group">
+                <label class="input-label">Employee ID (員工編號)</label>
+                <input 
+                    type="text" 
+                    id="employeeId" 
+                    class="employee-input tap-target" 
+                    placeholder="請輸入8位工號 (如: 82192660)"
+                    maxlength="8"
+                    pattern="\d*"
+                    inputmode="numeric"
+                >
+            </div>
+
+            <button class="btn btn-green tap-target" onclick="submitCheckIn()">
+                <i class="fas fa-check-circle"></i> 確認簽到
+            </button>
+
+            <div class="calendar-btn-container" id="calendarBtnContainer">
+                <button class="btn btn-orange tap-target" onclick="viewCalendar()">
+                    <i class="fas fa-calendar-alt"></i> 查看簽到日曆
+                </button>
+            </div>
+
+            <button onclick="window.location.href='menu02.html'" class="btn btn-blue tap-target">
+                <i class="fas fa-arrow-left"></i> 返回選單
+            </button>
+
+            <div id="statusMsg" class="status-msg"></div>
+        </div>
+    </div>
+
+    <div class="success-modal" id="successModal">
+        <div class="success-content">
+            <div class="success-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="success-title">簽到成功！</div>
+            <div class="success-text">歡迎參加本次課程</div>
+            <div class="success-time" id="checkInTime"></div>
+            <div style="color: rgba(255,255,255,0.6); font-size: 14px; margin-top: 10px;">
+                <i class="fas fa-spinner fa-spin"></i> 即將自動跳轉至紀錄頁面...
+            </div>
+        </div>
+    </div>
+
+    <nav class="nav-bar">
+        <a href="index.html" class="nav-item tap-target"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="alerts.html" class="nav-item tap-target"><i class="fas fa-bell"></i><span>Alerts</span></a>
+        <div class="nav-item tap-target"><i class="fas fa-user"></i><span>Profile</span></div>
+        <div class="nav-item tap-target"><i class="fas fa-cog"></i><span>Settings</span></div>
+        <a href="about.html" class="nav-item tap-target"><i class="fas fa-info-circle"></i><span>About</span></a>
+    </nav>
+
+    <script>
+        function applyTapEffect() {
+            const targets = document.querySelectorAll('.tap-target');
+            targets.forEach(btn => {
+                btn.addEventListener('touchstart', function() { this.classList.add('tapped'); }, { passive: true });
+                const removeEffect = () => { setTimeout(() => btn.classList.remove('tapped'), 100); };
+                btn.addEventListener('touchend', removeEffect);
+                btn.addEventListener('touchcancel', removeEffect);
+                btn.addEventListener('mousedown', () => btn.classList.add('tapped'));
+                btn.addEventListener('mouseup', removeEffect);
+            });
+        }
+
+        // ==========================================
+        // 核心修改區：動態識別 ngrok 網域，避免指向未更新的 Render
+        // ==========================================
+        const hostname = window.location.hostname;
+        let API_URL = "https://jackalchiu.onrender.com";
+        
+        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '172.20.10.3') {
+            API_URL = "http://172.20.10.3:8000";
+        } else if (hostname.includes('ngrok')) {
+            API_URL = window.location.origin; // 使用動態 ngrok 網址
+        }
+
+        document.getElementById('employeeId').addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value.length === 8) {
+                localStorage.setItem('currentEmployeeId', this.value);
+                document.getElementById('calendarBtnContainer').classList.add('show');
+            }
+        });
+
+        // 提交簽到
+        async function submitCheckIn() {
+            const employeeId = document.getElementById('employeeId').value.trim();
+            const statusMsg = document.getElementById('statusMsg');
+
+            if (employeeId.length !== 8) {
+                statusMsg.className = 'status-msg status-error';
+                statusMsg.innerHTML = '<i class="fas fa-exclamation-circle"></i> 請輸入完整的8位員工工號';
+                return;
+            }
+
+            statusMsg.className = 'status-msg';
+            statusMsg.innerHTML = '';
+
+            try {
+                // 1. 先驗證是否為註冊學員
+                const checkRes = await fetch(`${API_URL}/check-employee/${employeeId}`);
+                
+                // 【修改點】攔截 404 等伺服器錯誤，避免一律被當作「非註冊學員」
+                if (!checkRes.ok) {
+                    statusMsg.className = 'status-msg status-error';
+                    statusMsg.innerHTML = `<i class="fas fa-exclamation-triangle"></i> 伺服器異常 (HTTP ${checkRes.status})。可能是遠端 API 尚未更新，請確認測試環境。`;
+                    return;
+                }
+
+                const checkData = await checkRes.json();
+                
+                if (checkData.status !== 'success') {
+                    statusMsg.className = 'status-msg status-error';
+                    // 精準顯示後端回傳的錯誤，或提供預設文字
+                    statusMsg.innerHTML = `<i class="fas fa-times-circle"></i> ${checkData.message || '非註冊學員,請前往申請後再重試'}`;
+                    return;
+                }
+
+                // 2. 提交簽到
+                const response = await fetch(`${API_URL}/submit-checkin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ employee_id: employeeId })
+                });
+
+                if (!response.ok) {
+                    statusMsg.className = 'status-msg status-error';
+                    statusMsg.innerHTML = `<i class="fas fa-exclamation-triangle"></i> 寫入簽到失敗 (HTTP ${response.status})。`;
+                    return;
+                }
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    localStorage.setItem('currentEmployeeId', employeeId);
+                    saveEmployeeToHistory(employeeId);
+                    showSuccessModal();
+                    
+                    // 自動跳轉到日曆頁面
+                    setTimeout(() => {
+                        window.location.href = 'classsful.html';
+                    }, 1500);
+                } else {
+                    statusMsg.className = 'status-msg status-error';
+                    statusMsg.innerHTML = `<i class="fas fa-times-circle"></i> ${result.message || '簽到失敗'}`;
+                }
+            } catch (error) {
+                console.error('簽到請求失敗:', error);
+                statusMsg.className = 'status-msg status-error';
+                statusMsg.innerHTML = '<i class="fas fa-wifi"></i> 網路連線失敗或網址解析錯誤';
+            }
+        }
+
+        function saveEmployeeToHistory(employeeId) {
+            let history = JSON.parse(localStorage.getItem('employeeHistory') || '[]');
+            if (!history.includes(employeeId)) {
+                history.push(employeeId);
+                localStorage.setItem('employeeHistory', JSON.stringify(history));
+            }
+        }
+
+        function showSuccessModal() {
+            const modal = document.getElementById('successModal');
+            const timeDisplay = document.getElementById('checkInTime');
+
+            const now = new Date();
+            const timeStr = now.toLocaleString('zh-TW', {
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+            timeDisplay.innerHTML = `<i class="fas fa-clock"></i> ${timeStr}`;
+            modal.classList.add('show');
+        }
+
+        function viewCalendar() {
+            const employeeId = document.getElementById('employeeId').value.trim();
+            if (employeeId.length === 8) {
+                localStorage.setItem('currentEmployeeId', employeeId);
+                window.location.href = 'classsful.html';
+            } else {
+                alert('請先輸入有效的8位員工工號');
+            }
+        }
+
+        window.onload = () => {
+            applyTapEffect();
+            const savedEmployeeId = localStorage.getItem('currentEmployeeId');
+            if (savedEmployeeId) {
+                document.getElementById('employeeId').value = savedEmployeeId;
+                document.getElementById('calendarBtnContainer').classList.add('show');
+            }
+            document.getElementById('employeeId').focus();
+        };
+    </script>
+</body>
+</html>

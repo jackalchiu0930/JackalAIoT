@@ -1,0 +1,16 @@
+{
+  "short_name": "JackalAIoT",
+  "name": "Jackal AIoT 控制面板",
+  "icons": [
+    {
+      "src": "./Icon_Jackal.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "./Starting.html",
+  "display": "standalone",
+  "theme_color": "#B4C7DF",
+  "background_color": "#B4C7DF",
+  "cache_mode": "no-cache"
+}

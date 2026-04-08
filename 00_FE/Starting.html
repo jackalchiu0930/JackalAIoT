@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>PSA iFactory</title>
+    <link rel="apple-touch-icon" href="Icon_Jackal.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="Icon_Jackal.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        html, body { 
+            width: 100%; height: 100%; 
+            overflow: hidden; 
+            background-color: #C0D1E1; 
+        }
+
+        .starting-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: url('01_Starting.jpg') no-repeat center center;
+            background-size: cover;
+            z-index: 1;
+        }
+
+        .loading-footer {
+            position: fixed;
+            bottom: 0; left: 0; width: 100%;
+            padding: 20px 20px calc(25px + env(safe-area-inset-bottom));
+            background: linear-gradient(to top, 
+                rgba(0, 0, 0, 0.5) 0%, 
+                rgba(0, 0, 0, 0.2) 60%, 
+                rgba(0, 0, 0, 0) 100%);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+            font-family: -apple-system, sans-serif;
+        }
+
+        .loading-text {
+            font-size: 11px;
+            letter-spacing: 4px;
+            margin-bottom: 12px;
+            opacity: 0.9;
+            font-weight: 400;
+            color: #007aff;
+            text-shadow: 0 0 10px rgba(0, 122, 255, 0.5);
+        }
+
+        .progress-container {
+            width: 50%;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: #007aff;
+            box-shadow: 0 0 10px rgba(0, 122, 255, 0.8);
+            animation: grow 2.8s ease-in-out forwards;
+        }
+
+        /* --- 核心調整：版本資訊區域 --- */
+        .version-overlay {
+            position: fixed;
+            /* 調整為 0px 並配合環境安全區域，確保文字在最底部淡藍色區塊 */
+            bottom: calc(0px + env(safe-area-inset-bottom)); 
+            right: 15px; 
+            z-index: 3; 
+            text-align: right;
+            font-style: italic; 
+            color: rgba(0, 0, 0, 0.35); 
+            font-size: 10px; /* 稍微縮小字體以適應窄小的底部區域 */
+            line-height: 1.1; /* 縮小行高，讓兩行文字更緊湊 */
+            pointer-events: none; 
+            font-family: Arial, sans-serif;
+            padding-bottom: 2px; /* 增加極小邊距避免貼齊螢幕物理邊緣 */
+        }
+
+        @keyframes grow {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="starting-screen"></div>
+
+    <div class="loading-footer">
+        <div class="loading-text">INITIALIZING SYSTEM</div>
+        <div class="progress-container">
+            <div class="progress-bar"></div>
+        </div>
+        <div style="height: 5px;"></div>
+    </div>
+
+    <div class="version-overlay">
+        <div>Copyright © by Passive System Alliance | All rights reserved.</div>
+        <div id="ver-info">by Jackal.Chiu | FE: v1.0.0 , BE: v1.0.0</div>
+    </div>
+
+    <script>
+        async function loadVersions() {
+            try {
+                const response = await fetch('./sw.js');
+                const code = await response.text();
+                // 抓取 FE_VERSION 與 BE_VERSION
+                const fe = code.match(/FE_VERSION\s*=\s*['"]([^'"]+)['"]/);
+                const be = code.match(/BE_VERSION\s*=\s*['"]([^'"]+)['"]/);
+                if (fe && be) {
+                    document.getElementById('ver-info').innerText = 
+                        `by Jackal.Chiu | FE: v${fe[1]} , BE: v${be[1]}`;
+                }
+            } catch (e) { console.log("Version fetch skip."); }
+        }
+
+        loadVersions();
+
+        setTimeout(() => {
+            // 加上時間戳參數，強迫瀏覽器重新執行 index.html 的邏輯
+            window.location.href = "./index.html?t=" + Date.now();
+        }, 3000);
+    </script>
+</body>
+</html>
