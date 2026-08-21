@@ -11,6 +11,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Firebase SDK (Web Compat 版) -->
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-messaging-compat.js"></script>
+
     <style>
         /* ========== 基礎重置 ========== */
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -304,9 +309,49 @@
     const LOADING_DURATION = 5000;
     const BACKEND_BASE_URL = window.location.origin;
 
-    // --- 修正後的判斷邏輯 ---
-    
-    // 1. 內部導航管理 (改用 sessionStorage 確保穩定)
+    // --- Firebase 初始化與設定 ---
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "jackalaiot.firebaseapp.com",
+      projectId: "jackalaiot",
+      storageBucket: "jackalaiot.appspot.com",
+      messagingSenderId: "203370527538",
+      appId: "YOUR_APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const messaging = firebase.messaging();
+
+    // 初始化 FCM 推播授權與取得 Token
+    async function initFcm() {
+        if (!('serviceWorker' in navigator)) return;
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                const token = await messaging.getToken({
+                    vapidKey: 'YOUR_VAPID_PUBLIC_KEY', // 填入 Cloud Messaging 頁面產生的 VAPID key
+                    serviceWorkerRegistration: reg
+                });
+                
+                if (token) {
+                    console.log('【FCM Token 取得成功】:', token);
+                    // 在前景方便測試複製：以 prompt 顯示方便點擊全選複製
+                    prompt("請複製下方 FCM Token 以便使用 Python 測試發送：", token);
+                }
+            }
+        } catch (err) {
+            console.error('FCM 初始化失敗:', err);
+        }
+    }
+
+    // 前景收到訊息處理（當使用者正開著網頁時）
+    messaging.onMessage((payload) => {
+        console.log('前景收到訊息:', payload);
+        alert(`【${payload.notification.title}】\n${payload.notification.body}`);
+    });
+
+    // 內部導航管理
     function setInternalNav() {
         sessionStorage.setItem('from_internal_nav', 'true');
     }
@@ -316,28 +361,18 @@
         window.location.href = url;
     }
 
-(function manageModal() {
+    (function manageModal() {
         const modal = document.getElementById('backendCheckModal');
-        
-        // 1. 獲取來源網址
         const referrer = document.referrer;
-        
-        // 2. 判斷是否從 Starting.html 跳轉過來
-        // 檢查來源網址是否包含 "Starting.html"
         const isFromStarting = referrer.includes('Starting.html');
 
-        // 3. 執行邏輯：只有從 Starting.html 過來，且本會話尚未檢查過時才顯示
-        // 如果您希望每次從 Starting 過來都彈窗，則拿掉 sessionStorage 的判斷
         if (isFromStarting) {
             modal.classList.add('show');
             runBackendCheck();
         } else {
-            // 從其他頁面（如 alerts.html, about.html）回來，或是直接刷新的，一律隱藏
             modal.style.display = 'none';
         }
     })();
-
-    // ----------------------
 
     document.getElementById('homeNav').addEventListener('click', function(e) {
         if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/') {
@@ -377,25 +412,8 @@
         btn.addEventListener('mouseup', removeEffect);
     });
 
-    // PWA 推送訂閱
-    async function forceSubscribe() {
-        if (!('serviceWorker' in navigator)) return;
-        try {
-            const reg = await navigator.serviceWorker.ready;
-            if (Notification.permission === 'granted') {
-                const sub = await reg.pushManager.getSubscription() || await reg.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: 'YOUR_VAPID_PUBLIC_KEY'
-                });
-            }
-        } catch (err) { console.error('Push Error:', err); }
-    }
-
     window.onload = () => {
-        if (Notification.permission === 'granted' && !sessionStorage.getItem('push_subscribed')) {
-            forceSubscribe();
-            sessionStorage.setItem('push_subscribed', 'true');
-        }
+        initFcm();
     };
 </script>
 </body>
