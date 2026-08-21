@@ -50,6 +50,7 @@
             position: relative;
             overflow: hidden;
             transition: transform 0.05s linear;
+            cursor: pointer;
         }
 
         .tap-target::after {
@@ -301,7 +302,8 @@
         <a href="index.html" id="homeNav" class="nav-item active tap-target"><i class="fas fa-home"></i><span>Home</span></a>
         <a href="alerts.html" onclick="setInternalNav()" class="nav-item tap-target"><i class="fas fa-bell"></i><span>Alerts</span></a>
         <div class="nav-item tap-target"><i class="fas fa-user"></i><span>Profile</span></div>
-        <div class="nav-item tap-target"><i class="fas fa-cog"></i><span>Settings</span></div>
+        <!-- Settings 按鈕綁定 requestNotification 點擊事件，符合 iOS 互動機制 -->
+        <div class="nav-item tap-target" onclick="requestNotification()"><i class="fas fa-cog"></i><span>Settings</span></div>
         <a href="about.html" onclick="setInternalNav()" class="nav-item tap-target"><i class="fas fa-info-circle"></i><span>About</span></a>
     </nav>
 
@@ -322,37 +324,52 @@
     firebase.initializeApp(firebaseConfig);
     const messaging = firebase.messaging();
 
+    // 手動觸發授權 (符合 iOS Safari 規範)
+    async function requestNotification() {
+        if (!('serviceWorker' in navigator) || !('Notification' in window)) {
+            alert('此瀏覽器不支援 PWA 推播通知功能');
+            return;
+        }
+        
+        if (confirm("是否開啟推播通知並取得 FCM Token？")) {
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    await initFcm();
+                } else if (permission === 'denied') {
+                    alert('通知權限已被拒絕！請至手機「設定」-> 找到此 App 並開啟通知。');
+                } else {
+                    alert('未授權通知權限');
+                }
+            } catch (err) {
+                alert('請求權限失敗: ' + err.message);
+            }
+        }
+    }
+
     // 初始化 FCM 推播授權與取得 Token
     async function initFcm() {
-        if (!('serviceWorker' in navigator)) return;
         try {
-            const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
-                // 先註冊 Service Worker
-                await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-                
-                // 關鍵修正：等待 Service Worker 完全激活 (active)
-                const activeReg = await navigator.serviceWorker.ready;
-                
-                const rawVapidKey = 'BOPImwAOEnxu6us4IQmRFa65VLl41NM3e0TYDDTHvisgUAXTdPzqtNlga2swp7zAAGX5jIsym9hVqxk53kgSTCc'; // 請填入您完整的 88 字元 Key
-                const cleanVapidKey = rawVapidKey.replace(/[^A-Za-z0-9\-_]/g, '').trim();
+            await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+            const activeReg = await navigator.serviceWorker.ready;
+            
+            const rawVapidKey = 'BOPImwAOEnxu6us4IQmRFa65VLl41NM3e0TYDDTHvisgUAXTdPzqtNlga2swp7zAAGX5jIsym9hVqxk53kgSTCc';
+            const cleanVapidKey = rawVapidKey.replace(/[^A-Za-z0-9\-_]/g, '').trim();
 
-                const token = await messaging.getToken({
-                    vapidKey: cleanVapidKey,
-                    serviceWorkerRegistration: activeReg
-                });
-                
-                if (token) {
-                    console.log('【FCM Token 取得成功】:', token);
-                    prompt("請複製下方 FCM Token 以便使用 Python 測試發送：", token);
-                } else {
-                    console.warn('無法取得 FCM Token，請確認瀏覽器通知權限。');
-                }
+            const token = await messaging.getToken({
+                vapidKey: cleanVapidKey,
+                serviceWorkerRegistration: activeReg
+            });
+            
+            if (token) {
+                console.log('【FCM Token 取得成功】:', token);
+                prompt("請複製下方 FCM Token 以便使用 Python 測試發送：", token);
             } else {
-                console.warn('使用者未授予通知權限');
+                alert('無法取得 FCM Token，請確認權限設定。');
             }
         } catch (err) {
             console.error('FCM 初始化失敗:', err);
+            alert('FCM 初始化失敗: ' + err.message);
         }
     }
 
@@ -422,10 +439,6 @@
         btn.addEventListener('mousedown', () => btn.classList.add('tapped'));
         btn.addEventListener('mouseup', removeEffect);
     });
-
-    window.onload = () => {
-        initFcm();
-    };
 </script>
 </body>
 </html>
