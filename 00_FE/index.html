@@ -323,6 +323,7 @@
     const messaging = firebase.messaging();
 
     // 初始化 FCM 推播授權與取得 Token
+    // 初始化 FCM 推播授權與取得 Token
     async function initFcm() {
         if (!('serviceWorker' in navigator)) return;
         try {
@@ -330,14 +331,11 @@
             if (permission === 'granted') {
                 const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
                 
-                // 原始 VAPID Key
-                const rawVapidKey = 'BOPImwAOEnxu6us4IQmRFa65VLl41NM3e0TYDDTHvisgUAXTdPzqtNlga2swp7zAAGX5jIsym9hVqxk53kgSTCc';
-                
-                // 自動清洗字串：移除空白、換行及所有非 Base64 字元
-                const cleanVapidKey = rawVapidKey.replace(/[^A-Za-z0-9\-_]/g, '').trim();
+                // 請替換為 Firebase Console 複製出的完整 88 字元金鑰
+                const validVapidKey = 'BOPImwAOEnxu6us4IQmRFa65VLl41NM3e0TYDDTHvisgUAXTdPzqtNlga2swp7zAAGX5jIsym9hVqxk53kgSTCc';
 
                 const token = await messaging.getToken({
-                    vapidKey: cleanVapidKey,
+                    vapidKey: validVapidKey,
                     serviceWorkerRegistration: reg
                 });
                 
