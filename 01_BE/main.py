@@ -12,12 +12,16 @@ from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 import uvicorn
 
+# --- Firebase Admin SDK 匯入 ---
+import firebase_admin
+from firebase_admin import credentials, messaging
+
 # ===================== 環境變量與路徑配置 =====================
 PORT = int(os.getenv("PORT", 8000))
 
-# 取得目前檔案 (main.py) 所在目錄 (00_BE)
+# 取得目前檔案 (main.py) 所在目錄 (01_BE)
 BASE_DIR = Path(__file__).parent.resolve()
-# 取得專案根目錄 (JackalAIoT)
+# 取得專案根目錄 (JackalAIoT01)
 PROJECT_ROOT = BASE_DIR.parent
 # 前端目錄路徑 (00_FE)
 FRONTEND_DIR = PROJECT_ROOT / "00_FE"
@@ -29,13 +33,34 @@ EMPLOYEES_FILE = BASE_DIR / "employees.json"
 UPLOAD_DIR = BASE_DIR / "Upload"
 IMAGE_PATH = BASE_DIR / "Icon_Jackal.png"
 
-# 圖片加水印文件路徑 (用於 class.html 驗證)
+# 圖片加水印文件路徑
 MASK_DIR = BASE_DIR / "Mask"
 MASK_DIR.mkdir(parents=True, exist_ok=True)
 WATERMARK_PATH = FRONTEND_DIR / "mask_jk.png"
 
-#課堂簽到路徑
+# 課堂簽到路徑
 CHECKIN_FILE = BASE_DIR / "checkin_rec.json"
+
+# ===================== Firebase Admin 初始化 (支援 Render 環境變數) =====================
+SERVICE_ACCOUNT_ENV = os.getenv("FIREBASE_SERVICE_ACCOUNT")
+SERVICE_ACCOUNT_FILE = BASE_DIR / "serviceAccountKey.json"
+
+try:
+    if SERVICE_ACCOUNT_ENV:
+        # Render 雲端部署：由 Environment Variables 載入 JSON
+        cred_dict = json.loads(SERVICE_ACCOUNT_ENV)
+        cred = credentials.Certificate(cred_dict)
+        firebase_admin.initialize_app(cred)
+        print("[FCM] Firebase Admin 成功透過環境變數初始化！")
+    elif SERVICE_ACCOUNT_FILE.exists():
+        # 本機開發：由本地 serviceAccountKey.json 載入
+        cred = credentials.Certificate(str(SERVICE_ACCOUNT_FILE))
+        firebase_admin.initialize_app(cred)
+        print("[FCM] Firebase Admin 成功透過本地檔初始化！")
+    else:
+        print("[FCM] 警示：未找到 Firebase 服務帳戶認證（環境變數與本地檔均不存在）")
+except Exception as e:
+    print(f"[FCM] 初始化失敗: {e}")
 
 app = FastAPI(title="Jackal AIoT Integrated Platform")
 
@@ -48,12 +73,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- 新增簽到相關模型 ---
+# --- 模型定義 ---
 class CheckinRequest(BaseModel):
     employee_id: str
 
+class FcmPushRequest(BaseModel):
+    fcm_token: str
+    title: str = "Jackal AIoT 系統通知"
+    body: str = "這是一則來自 Python 後端的 FCM 測試推播！"
+
 # ===================== 1. 核心 API (隨機數與資料) =====================
-# 協助寫入警報的通用函數
 def add_alert(message: str):
     try:
         alerts = []
@@ -72,7 +101,6 @@ def add_alert(message: str):
     except Exception as e:
         print(f"Alert writing error: {e}")
 
-# 您提到的：請求隨機數的 API (根路由)
 @app.get("/")
 async def get_random_number():
     num = random.randint(10000000, 99999999)
@@ -93,10 +121,8 @@ async def submit_note(data: dict = Body(...)):
     if not note:
         raise HTTPException(status_code=400, detail="內容不能為空")
     
-    # 核心修正：將提交的數據寫入 alerts.json
     add_alert(note)
     return {"status": "success", "message": "數據已寫入警報列表"}
-
 
 @app.get("/config")
 async def get_config():
@@ -110,9 +136,29 @@ async def get_employees():
     with open(EMPLOYEES_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
-# ===================== 2. 檔案與浮水印處理 API =====================
+# ===================== FCM 推播測試 API =====================
+@app.post("/send-fcm")
+async def send_fcm_notification(req: FcmPushRequest):
+    """專門給 Python 測試呼叫發送推播的 API"""
+    if not firebase_admin._apps:
+        raise HTTPException(status_code=500, detail="Firebase Admin 未初始化，請檢查設定")
+    
+    try:
+        message = messaging.Message(
+            notification=messaging.Notification(
+                title=req.title,
+                body=req.body,
+            ),
+            token=req.fcm_token,
+        )
+        response = messaging.send(message)
+        
+        add_alert(f"[FCM 推播] {req.title}: {req.body}")
+        return {"status": "success", "message_id": response}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"FCM 發送失敗: {str(e)}")
 
-# 專門給 class.html 使用的全幅浮水印上傳
+# ===================== 2. 檔案與浮水印處理 API =====================
 @app.post("/upload-mask")
 async def upload_mask_file(file: UploadFile = File(...)):
     temp_path = MASK_DIR / "temp.png"
@@ -127,14 +173,12 @@ async def upload_mask_file(file: UploadFile = File(...)):
             bg_w, bg_h = base_img.size
             wm_w, wm_h = watermark.size
             
-            # Cover 邏輯：確保浮水印佈滿全圖，超出部分裁切
             ratio = max(bg_w / wm_w, bg_h / wm_h)
             new_wm_w = int(wm_w * ratio)
             new_wm_h = int(wm_h * ratio)
             
             watermark = watermark.resize((new_wm_w, new_wm_h), Image.Resampling.LANCZOS)
             
-            # 居中計算
             offset_x = (bg_w - new_wm_w) // 2
             offset_y = (bg_h - new_wm_h) // 2
             
@@ -156,7 +200,6 @@ async def get_mask_image():
         raise HTTPException(status_code=404, detail="圖片不存在")
     return FileResponse(path=temp_path, media_type="image/png", headers={"Cache-Control": "no-cache"})
 
-# 原有的通用上傳 API
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     ext = ".png" if file.content_type.startswith("image/") else f"_{file.filename}"
@@ -173,69 +216,7 @@ async def get_image():
         raise HTTPException(status_code=404, detail="圖片不存在")
     return FileResponse(path=IMAGE_PATH, media_type="image/png")
 
-# 課堂簽到API
-
-@app.get("/check-employee/{employee_id}")
-async def check_employee(employee_id: str):
-    """檢查工號是否存在於 employees.json"""
-    if not EMPLOYEES_FILE.exists():
-        raise HTTPException(status_code=500, detail="員工資料庫不存在")
-    
-    with open(EMPLOYEES_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
-        
-    if employee_id in data.get("employees", []):
-        return {"status": "success", "course": data.get("course_name", "AIoT 課程")}
-    else:
-        return {"status": "error", "message": "非註冊學員，請前往申請後再重試"}
-
-@app.post("/submit-checkin")
-async def submit_checkin(req: CheckinRequest):
-    """提交簽到記錄並存入 checkin_rec.json"""
-    if not EMPLOYEES_FILE.exists():
-        raise HTTPException(status_code=500, detail="員工資料庫不存在")
-        
-    with open(EMPLOYEES_FILE, "r", encoding="utf-8") as f:
-        emp_data = json.load(f)
-    
-    if req.employee_id not in emp_data.get("employees", []):
-        raise HTTPException(status_code=400, detail="非註冊學員")
-
-    # 讀取或初始化簽到記錄
-    records_data = {"course_name": emp_data.get("course_name", ""), "checkin_records": []}
-    if CHECKIN_FILE.exists():
-        with open(CHECKIN_FILE, "r", encoding="utf-8") as f:
-            records_data = json.load(f)
-
-    # 建立新紀錄
-    new_record = {
-        "employee_id": req.employee_id,
-        "timestamp": datetime.now().strftime("%Y/%m/%d %H:%M:%S"),
-        "course": emp_data.get("course_name", "")
-    }
-    records_data["checkin_records"].append(new_record)
-
-    with open(CHECKIN_FILE, "w", encoding="utf-8") as f:
-        json.dump(records_data, f, indent=2, ensure_ascii=False)
-
-    return {"status": "success", "message": "簽到成功", "record": new_record}
-
-@app.get("/get-checkin-records/{employee_id}")
-async def get_checkin_records(employee_id: str):
-    """取得特定員工的簽到紀錄"""
-    if not CHECKIN_FILE.exists():
-        return {"course_name": "", "checkin_records": []}
-        
-    with open(CHECKIN_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    
-    # 過濾出該員工的紀錄
-    user_records = [r for r in data.get("checkin_records", []) if r["employee_id"] == employee_id]
-    return {"course_name": data.get("course_name", ""), "checkin_records": user_records}
-
-
 # ===================== 3. 靜態檔案掛載 (放在最後) =====================
-
 if FRONTEND_DIR.exists():
     app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
 
