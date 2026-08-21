@@ -330,7 +330,7 @@
             if (permission === 'granted') {
                 const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
                 const token = await messaging.getToken({
-                    vapidKey: 'YOUR_VAPID_PUBLIC_KEY', // 填入 Cloud Messaging 頁面產生的 VAPID key
+                    vapidKey: 'BOPImwAOEnxu6us4IQmRFa65VLl41NM3e0TYDDTHvisgUAXTdPzqtNlga2swp7zAAGX5jIsym9hVqxk53kgSTCc', // 填入 Cloud Messaging 頁面產生的 VAPID key
                     serviceWorkerRegistration: reg
                 });
                 
