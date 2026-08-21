@@ -329,8 +329,15 @@
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
                 const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                
+                // 原始 VAPID Key
+                const rawVapidKey = 'BOPImwAOEnxu6us4IQmRFa65VLl41NM3e0TYDDTHvisgUAXTdPzqtNlga2swp7zAAGX5jIsym9hVqxk53kgSTCc';
+                
+                // 自動清洗字串：移除空白、換行及所有非 Base64 字元
+                const cleanVapidKey = rawVapidKey.replace(/[^A-Za-z0-9\-_]/g, '').trim();
+
                 const token = await messaging.getToken({
-                    vapidKey: 'BOPImwAOEnxu6us4IQmRFa65VLl41NM3e0TYDDTHvisgUAXTdPzqtNlga2swp7zAAGX5jIsym9hVqxk53kgSTCc',
+                    vapidKey: cleanVapidKey,
                     serviceWorkerRegistration: reg
                 });
                 
@@ -338,7 +345,7 @@
                     console.log('【FCM Token 取得成功】:', token);
                     prompt("請複製下方 FCM Token 以便使用 Python 測試發送：", token);
                 } else {
-                    console.warn('無法取得 FCM Token');
+                    console.warn('無法取得 FCM Token，請確認瀏覽器通知權限。');
                 }
             } else {
                 console.warn('使用者未授予通知權限');
