@@ -1,6 +1,6 @@
 // --- 版本配置區 (在此修改版本號，啟動畫面將自動同步) ---
-const FE_VERSION = '1.0.7'; // 【更新】版本號更新，觸發PWA更新
-const BE_VERSION = '1.0.7';
+const FE_VERSION = '1.0.8'; // 【更新】版本號更新至 1.0.8，修正電腦端重複推播問題
+const BE_VERSION = '1.0.8';
 const AUTHOR = 'AIoT Center | Jackal.Chiu';
 const ORG = 'PSA華科事業群';
 const CACHE_NAME = 'jackal-v' + FE_VERSION; // 與前端版本連動
@@ -17,6 +17,7 @@ const ASSETS = [
   './Icon_Jackal.png', 
   './manifest.json'
 ];
+
 // --- 新增：動態獲取後端地址函數 (支持環境變量+原有hostname判斷) ---
 const getBackendBaseUrl = () => {
   // Service Worker 中無法直接訪問 window，但可讀取self.location + 環境變量優先
@@ -27,6 +28,7 @@ const getBackendBaseUrl = () => {
   // 優先使用環境變量，無則用原Render地址（兼容原有部署）
   return self.env?.VITE_BACKEND_URL || 'https://jackalchiu.onrender.com';
 };
+
 // --- 新增：清除配置檔標記函數 ---
 async function clearConfigFlag() {
   try {
@@ -48,6 +50,7 @@ async function clearConfigFlag() {
     // 即使失敗也不影響SW安裝
   }
 }
+
 self.addEventListener('install', (e) => {
   console.log('[SW] 正在安裝新版本:', FE_VERSION);
   
@@ -74,6 +77,7 @@ self.addEventListener('install', (e) => {
     })
   );
 });
+
 self.addEventListener('activate', (e) => {
   console.log('[SW] 正在激活新版本:', FE_VERSION);
   e.waitUntil(
@@ -90,22 +94,38 @@ self.addEventListener('activate', (e) => {
     })
   );
 });
+
+// --- 推播事件處理 (防止電腦端雙重彈窗) ---
 self.addEventListener('push', (event) => {
-  let data = { title: 'Jackal AIoT', body: '設備通知' };
+  let payload = {};
+  
   try {
-    data = event.data.json();
+    payload = event.data ? event.data.json() : {};
   } catch (e) {
-    data.body = event.data ? event.data.text() : '收到新數據';
+    payload = { data: { title: 'Jackal AIoT', body: event.data ? event.data.text() : '收到新數據' } };
   }
+
+  // 1. 如果 Firebase 已經發送了原生 notification 物件，瀏覽器會自動顯示，SW 不再手動觸發，避免重複彈窗
+  if (payload.notification) {
+    console.log('[SW] 收到原生 notification，由瀏覽器自動處理彈窗');
+    return;
+  }
+
+  // 2. 若為純 data 訊息（包含自訂 title 與 body），才由 Service Worker 手動彈出 notification
+  const title = (payload.data && payload.data.title) || payload.title || 'Jackal AIoT 警報';
+  const body = (payload.data && payload.data.body) || payload.body || '收到新數據';
+
   const options = {
-    body: data.body,
+    body: body,
     icon: './Icon_Jackal.png',
     badge: './Icon_Jackal.png',
     vibrate: [200, 100, 200],
     data: { url: './alerts.html' }
   };
-  event.waitUntil(self.registration.showNotification(data.title, options));
+
+  event.waitUntil(self.registration.showNotification(title, options));
 });
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(clients.openWindow(event.notification.data.url));
