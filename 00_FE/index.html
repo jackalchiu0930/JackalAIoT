@@ -311,12 +311,12 @@
 
     // --- Firebase 初始化與設定 ---
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
+      apiKey: "YOUR_FIREBASE_WEB_API_KEY", // 修正：填入 Firebase Console 取得的 Web API Key (AIzaSy...)
       authDomain: "jackalaiot.firebaseapp.com",
       projectId: "jackalaiot",
       storageBucket: "jackalaiot.appspot.com",
       messagingSenderId: "203370527538",
-      appId: "YOUR_APP_ID"
+      appId: "1:203370527538:web:0a08b313693ac0b454752b" // 修正：填入對應的 App ID
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -330,13 +330,12 @@
             if (permission === 'granted') {
                 const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
                 const token = await messaging.getToken({
-                    vapidKey: 'BOPImwAOEnxu6us4IQmRFa65VLl41NM3e0TYDDTHvisgUAXTdPzqtNlga2swp7zAAGX5jIsym9hVqxk53kgSTCc', // 填入 Cloud Messaging 頁面產生的 VAPID key
+                    vapidKey: 'BOPImwAOEnxu6us4IQmRFa65VLl41NM3e0TYDDTHvisgUAXTdPzqtNlga2swp7zAAGX5jIsym9hVqxk53kgSTCc',
                     serviceWorkerRegistration: reg
                 });
                 
                 if (token) {
                     console.log('【FCM Token 取得成功】:', token);
-                    // 在前景方便測試複製：以 prompt 顯示方便點擊全選複製
                     prompt("請複製下方 FCM Token 以便使用 Python 測試發送：", token);
                 }
             }
@@ -345,10 +344,10 @@
         }
     }
 
-    // 前景收到訊息處理（當使用者正開著網頁時）
+    // 前景收到訊息處理
     messaging.onMessage((payload) => {
         console.log('前景收到訊息:', payload);
-        alert(`【${payload.notification.title}】\n${payload.notification.body}`);
+        alert(`【${payload.notification?.title || '通知'}】\n${payload.notification?.body || ''}`);
     });
 
     // 內部導航管理

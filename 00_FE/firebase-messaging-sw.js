@@ -2,9 +2,9 @@
 importScripts('https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.9.0/firebase-messaging-compat.js');
 
-// 初始化 Firebase (請填入您在 Firebase Console 取得的配置)
+// 初始化 Firebase
 firebase.initializeApp({
-  apiKey: "BOPImwAOEnxu6us4IQmRFa65VLl41NM3e0TYDDTHvisgUAXTdPzqtNlga2swp7zAAGX5jIsym9hVqxk53kgSTCc",
+  apiKey: "BOPImwAOEnxu6us4IQmRFa65VLl41NM3e0TYDDTHvisgUAXTdPzqtNlga2swp7zAAGX5jIsym9hVqxk53kgSTCc", // 修正：請填入 Firebase Console 的 Web API Key (以 AIzaSy... 開頭)
   authDomain: "jackalaiot.firebaseapp.com",
   projectId: "jackalaiot",
   storageBucket: "jackalaiot.appspot.com",
