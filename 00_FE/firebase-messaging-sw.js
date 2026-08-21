@@ -4,7 +4,7 @@ importScripts('https://www.gstatic.com/firebasejs/10.9.0/firebase-messaging-comp
 
 // 初始化 Firebase
 firebase.initializeApp({
-  apiKey: "AIzaSyA1D7APEDmmh25Vnc5AAx9i7_zmaBomjUg", // 修正：請填入 Firebase Console 的 Web API Key (以 AIzaSy... 開頭)
+  apiKey: "AIzaSyA1D7APEDmmh25Vnc5AAx9i7_zmaBomjUg",
   authDomain: "jackalaiot.firebaseapp.com",
   projectId: "jackalaiot",
   storageBucket: "jackalaiot.appspot.com",

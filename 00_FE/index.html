@@ -311,12 +311,12 @@
 
     // --- Firebase 初始化與設定 ---
     const firebaseConfig = {
-      apiKey: "YOUR_FIREBASE_WEB_API_KEY", // 修正：填入 Firebase Console 取得的 Web API Key (AIzaSy...)
+      apiKey: "AIzaSyA1D7APEDmmh25Vnc5AAx9i7_zmaBomjUg",
       authDomain: "jackalaiot.firebaseapp.com",
       projectId: "jackalaiot",
       storageBucket: "jackalaiot.appspot.com",
       messagingSenderId: "203370527538",
-      appId: "1:203370527538:web:0a08b313693ac0b454752b" // 修正：填入對應的 App ID
+      appId: "1:203370527538:web:0a08b313693ac0b454752b"
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -337,7 +337,11 @@
                 if (token) {
                     console.log('【FCM Token 取得成功】:', token);
                     prompt("請複製下方 FCM Token 以便使用 Python 測試發送：", token);
+                } else {
+                    console.warn('無法取得 FCM Token');
                 }
+            } else {
+                console.warn('使用者未授予通知權限');
             }
         } catch (err) {
             console.error('FCM 初始化失敗:', err);
